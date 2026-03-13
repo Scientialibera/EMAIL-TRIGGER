@@ -1,0 +1,1 @@
+"""CQC email processor package."""

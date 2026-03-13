@@ -1,0 +1,28 @@
+{
+  "name": "coa_v1",
+  "version": "1.0.0",
+  "required_fields": [
+    "product_type",
+    "supplier_name",
+    "lot_number",
+    "coa_date",
+    "lead",
+    "cadmium",
+    "moisture_percentage"
+  ],
+  "fields": {
+    "product_type": {"type": "string", "description": "Product type from COA"},
+    "supplier_name": {"type": "string", "description": "Supplier legal name"},
+    "lot_number": {"type": "string", "description": "Supplier lot number"},
+    "coa_date": {"type": "string", "format": "date", "description": "COA issue date"},
+    "lead": {"type": "string", "description": "Lead value and unit"},
+    "cadmium": {"type": "string", "description": "Cadmium value and unit"},
+    "moisture_percentage": {"type": "number", "description": "Moisture percentage value"}
+  },
+  "output_contract": {
+    "field_shape": {
+      "value": "any",
+      "confidence": "float"
+    }
+  }
+}

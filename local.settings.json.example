@@ -1,0 +1,23 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "SERVICEBUS_QUEUE_NAME": "q-cqc-email-process",
+    "SERVICEBUS_CONNECTION": "Endpoint=sb://example.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=replace",
+    "ACTIVE_MODEL_PROFILE": "default",
+    "ACTIVE_EXTRACTION_SCHEMA": "coa_v1",
+    "CONFIDENCE_THRESHOLD_REQUIRED": "0.97",
+    "AOAI_ENDPOINT": "https://your-aoai.openai.azure.com",
+    "AOAI_API_VERSION": "2024-06-01",
+    "AOAI_DEPLOYMENT_VALIDITY": "gpt-4.1-mini",
+    "AOAI_DEPLOYMENT_EXTRACTION": "gpt-4.1",
+    "DOCINTEL_ENDPOINT": "https://your-docintel.cognitiveservices.azure.com",
+    "FABRIC_NOTEBOOK_JOB_ENDPOINT": "https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/items/{notebookId}/jobs/instances?jobType=RunNotebook",
+    "FABRIC_WORKSPACE_ID": "workspace-guid",
+    "FABRIC_LAKEHOUSE_ID": "lakehouse-guid",
+    "FABRIC_SILVER_TABLE": "dbo.cqc_email_silver",
+    "MISSING_INFO_LOGICAPP_URL": "https://prod-00.region.logic.azure.com/workflows/.../triggers/manual/paths/invoke",
+    "ENABLE_KEYVAULT": "false"
+  }
+}

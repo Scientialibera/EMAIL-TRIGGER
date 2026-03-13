@@ -1,0 +1,29 @@
+{
+  "name": "coa_v2",
+  "version": "2.0.0",
+  "required_fields": [
+    "product_type",
+    "supplier_name",
+    "lot_number",
+    "coa_date",
+    "lead",
+    "cadmium",
+    "moisture_percentage"
+  ],
+  "fields": {
+    "product_type": {"type": "string"},
+    "supplier_name": {"type": "string"},
+    "lot_number": {"type": "string"},
+    "coa_date": {"type": "string", "format": "date"},
+    "lead": {"type": "string"},
+    "cadmium": {"type": "string"},
+    "moisture_percentage": {"type": "number"},
+    "arsenic": {"type": "string"}
+  },
+  "output_contract": {
+    "field_shape": {
+      "value": "any",
+      "confidence": "float"
+    }
+  }
+}

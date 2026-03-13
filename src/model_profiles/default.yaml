@@ -1,0 +1,4 @@
+validity_model: ${AOAI_DEPLOYMENT_VALIDITY}
+extraction_model: ${AOAI_DEPLOYMENT_EXTRACTION}
+temperature: 0.0
+max_tokens: 2000
