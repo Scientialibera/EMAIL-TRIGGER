@@ -11,19 +11,102 @@
     "moisture_percentage"
   ],
   "fields": {
-    "product_type": {"type": "string"},
-    "supplier_name": {"type": "string"},
-    "lot_number": {"type": "string"},
-    "coa_date": {"type": "string", "format": "date"},
-    "lead": {"type": "string"},
-    "cadmium": {"type": "string"},
-    "moisture_percentage": {"type": "number"},
-    "arsenic": {"type": "string"}
+    "product_type": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "supplier_name": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "lot_number": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "coa_date": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string", "format": "date"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "lead": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "cadmium": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "moisture_percentage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "number"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "arsenic": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    }
   },
   "output_contract": {
     "field_shape": {
-      "value": "any",
-      "confidence": "float"
+      "type": "array",
+      "item_shape": {
+        "value": "any",
+        "confidence": "float"
+      }
     }
   }
 }

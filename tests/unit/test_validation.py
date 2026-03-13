@@ -9,7 +9,7 @@ def test_compute_missing_fields_uses_threshold() -> None:
             "thread_id": "t1",
             "attachment_names": [],
             "receive_timestamp": "2026-03-13T00:00:00Z",
-            "supplier_name": {"value": "Acme", "confidence": 0.9},
+            "supplier_name": [{"value": "Acme", "confidence": 0.9}],
             "status": "processed",
             "model_name": "gpt",
             "model_version": "1",

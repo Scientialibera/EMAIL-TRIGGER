@@ -1,11 +1,15 @@
 Extract COA fields from provided text using the given schema.
-Return strictly valid JSON where each field is:
+Return strictly valid JSON where each field is an array of objects:
 {
-  "value": "<value or null>",
-  "confidence": <0.0 to 1.0>
+  "field_name": [
+    {
+      "value": "<value or null>",
+      "confidence": <0.0 to 1.0>
+    }
+  ]
 }
 Requirements:
 - Do not invent values.
 - Set confidence low for weak evidence.
-- Use null value with low confidence when missing.
+- Use empty array or null value with low confidence when missing.
 - Preserve units in the value when present.

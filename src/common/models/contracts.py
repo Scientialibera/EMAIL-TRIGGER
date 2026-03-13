@@ -34,13 +34,13 @@ class ExtractionRecord(BaseModel):
     thread_id: str
     attachment_names: list[str]
     receive_timestamp: str
-    product_type: ExtractedField | None = None
-    supplier_name: ExtractedField | None = None
-    lot_number: ExtractedField | None = None
-    coa_date: ExtractedField | None = None
-    lead: ExtractedField | None = None
-    cadmium: ExtractedField | None = None
-    moisture_percentage: ExtractedField | None = None
+    product_type: list[ExtractedField] | None = None
+    supplier_name: list[ExtractedField] | None = None
+    lot_number: list[ExtractedField] | None = None
+    coa_date: list[ExtractedField] | None = None
+    lead: list[ExtractedField] | None = None
+    cadmium: list[ExtractedField] | None = None
+    moisture_percentage: list[ExtractedField] | None = None
     missing_fields: list[str] = Field(default_factory=list)
     status: Literal["processed", "missing_info", "rejected", "updated"]
     model_name: str

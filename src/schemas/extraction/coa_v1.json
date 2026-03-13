@@ -11,18 +11,98 @@
     "moisture_percentage"
   ],
   "fields": {
-    "product_type": {"type": "string", "description": "Product type from COA"},
-    "supplier_name": {"type": "string", "description": "Supplier legal name"},
-    "lot_number": {"type": "string", "description": "Supplier lot number"},
-    "coa_date": {"type": "string", "format": "date", "description": "COA issue date"},
-    "lead": {"type": "string", "description": "Lead value and unit"},
-    "cadmium": {"type": "string", "description": "Cadmium value and unit"},
-    "moisture_percentage": {"type": "number", "description": "Moisture percentage value"}
+    "product_type": {
+      "type": "array",
+      "description": "Product type from COA",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "supplier_name": {
+      "type": "array",
+      "description": "Supplier legal name",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "lot_number": {
+      "type": "array",
+      "description": "Supplier lot number",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "coa_date": {
+      "type": "array",
+      "description": "COA issue date",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string", "format": "date"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "lead": {
+      "type": "array",
+      "description": "Lead value and unit",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "cadmium": {
+      "type": "array",
+      "description": "Cadmium value and unit",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "string"},
+          "confidence": {"type": "number"}
+        }
+      }
+    },
+    "moisture_percentage": {
+      "type": "array",
+      "description": "Moisture percentage value",
+      "items": {
+        "type": "object",
+        "required": ["value", "confidence"],
+        "properties": {
+          "value": {"type": "number"},
+          "confidence": {"type": "number"}
+        }
+      }
+    }
   },
   "output_contract": {
     "field_shape": {
-      "value": "any",
-      "confidence": "float"
+      "type": "array",
+      "item_shape": {
+        "value": "any",
+        "confidence": "float"
+      }
     }
   }
 }

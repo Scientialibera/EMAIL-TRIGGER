@@ -8,3 +8,7 @@ def test_schema_has_required_keys() -> None:
     assert "required_fields" in schema
     assert "fields" in schema
     assert "output_contract" in schema
+    for field_name in schema["required_fields"]:
+        field_def = schema["fields"][field_name]
+        assert field_def["type"] == "array"
+        assert field_def["items"]["required"] == ["value", "confidence"]

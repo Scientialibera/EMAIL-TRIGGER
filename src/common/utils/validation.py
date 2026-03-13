@@ -8,11 +8,16 @@ def compute_missing_fields(record: ExtractionRecord, required_fields: list[str],
     data = record.model_dump()
     for field_name in required_fields:
         value = data.get(field_name)
-        if value is None:
+        if value is None or not isinstance(value, list) or len(value) == 0:
             missing.append(field_name)
             continue
-        confidence = value.get("confidence", 0.0)
-        if value.get("value") in (None, "", []) or confidence < threshold:
+        has_valid_item = any(
+            isinstance(item, dict)
+            and item.get("value") not in (None, "", [])
+            and float(item.get("confidence", 0.0)) >= threshold
+            for item in value
+        )
+        if not has_valid_item:
             missing.append(field_name)
     return missing
 
