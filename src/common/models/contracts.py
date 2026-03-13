@@ -12,6 +12,15 @@ class AttachmentRef(BaseModel):
     content_base64: str | None = None
 
 
+class ThreadMessage(BaseModel):
+    message_id: str | None = None
+    subject: str | None = None
+    sender: str | None = None
+    received_timestamp: str | None = None
+    body_text: str | None = None
+    attachment_refs: list[AttachmentRef] = Field(default_factory=list)
+
+
 class QueueMessage(BaseModel):
     message_id: str
     internet_message_id: str
@@ -23,6 +32,9 @@ class QueueMessage(BaseModel):
     prefilter_status: Literal["processable", "rejected"]
     correlation_id: str
     header_name: str | None = None
+    thread_title: str | None = None
+    body_text: str | None = None
+    thread_messages: list[ThreadMessage] = Field(default_factory=list)
 
 
 class ExtractedField(BaseModel):

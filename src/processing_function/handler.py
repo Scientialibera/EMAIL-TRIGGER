@@ -11,6 +11,7 @@ from src.processing_function.adapters.fabric_write_queue_client import FabricWri
 from src.processing_function.adapters.logic_app_client import LogicAppAdapter
 from src.processing_function.adapters.openai_client import AzureOpenAIAdapter
 from src.processing_function.adapters.service_bus_client import parse_service_bus_message
+from src.processing_function.pipeline.context_builder import build_llm_context
 from src.processing_function.pipeline.convert_to_text import convert_attachments_to_text
 from src.processing_function.pipeline.extraction import extract_record
 from src.processing_function.pipeline.missing_info import request_missing_information
@@ -38,15 +39,16 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
     )
     logic_client = LogicAppAdapter(settings.missing_info_logicapp_url)
 
-    text, attachment_names, attachment_bytes = convert_attachments_to_text(
+    extracted_attachments, attachment_names, attachment_bytes = convert_attachments_to_text(
         queue_message.attachment_refs, doc_client
     )
+    llm_context = build_llm_context(queue_message, extracted_attachments)
 
     attachment_hashes = [compute_attachment_hash(x) for x in attachment_bytes]
     idem_key = build_idempotency_key(queue_message.internet_message_id, attachment_hashes)
     log_event(logger, "idempotency_key_computed", correlation_id, idempotency_key=idem_key)
 
-    is_valid, reason = evaluate_validity(text, ai_client)
+    is_valid, reason = evaluate_validity(llm_context, ai_client)
     if not is_valid:
         log_event(logger, "validity_rejected", correlation_id, reason=reason)
         return
@@ -56,7 +58,7 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
         thread_id=queue_message.thread_id,
         receive_timestamp=queue_message.received_timestamp,
         attachment_names=attachment_names,
-        text=text,
+        text=llm_context,
         schema=settings.extraction_schema,
         model_name=settings.profile.extraction_model,
         correlation_id=correlation_id,

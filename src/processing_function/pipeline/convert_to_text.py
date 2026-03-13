@@ -8,8 +8,8 @@ from src.processing_function.adapters.doc_intelligence_client import DocumentInt
 
 def convert_attachments_to_text(
     attachments: list[AttachmentRef], doc_client: DocumentIntelligenceAdapter
-) -> tuple[str, list[str], list[bytes]]:
-    chunks: list[str] = []
+) -> tuple[list[dict[str, str]], list[str], list[bytes]]:
+    extracted_attachments: list[dict[str, str]] = []
     names: list[str] = []
     content_bytes: list[bytes] = []
 
@@ -18,8 +18,8 @@ def convert_attachments_to_text(
             continue
         raw = base64.b64decode(attachment.content_base64)
         extracted = doc_client.extract_text(raw)
-        chunks.append(f"Attachment: {attachment.name}\n{extracted}")
+        extracted_attachments.append({"name": attachment.name, "text": extracted})
         names.append(attachment.name)
         content_bytes.append(raw)
 
-    return "\n\n".join(chunks), names, content_bytes
+    return extracted_attachments, names, content_bytes
