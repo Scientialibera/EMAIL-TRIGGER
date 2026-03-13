@@ -1,0 +1,7 @@
+{
+  "processable_headers": [
+    "CQC-PROCESSABLE",
+    "X-CQC-PROCESS"
+  ],
+  "request_info_header": "CQC-REQUEST-INFO"
+}

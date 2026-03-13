@@ -4,6 +4,7 @@
 
 - Application Insights traces (filter by `correlation_id`)
 - Service Bus queue depth and dead-letter count
+- Fabric write queue session backlog (`q-cqc-fabric-write`)
 - Function execution failures and duration
 - Fabric notebook job failures
 
@@ -26,3 +27,6 @@
 - Field changes: update `src/schemas/extraction/*.json`.
 - Prompt changes: update `src/prompts/**`.
 - Model switch: update `src/model_profiles/*.yaml` and set `ACTIVE_MODEL_PROFILE`.
+- Header rule changes: update `src/config/email_header_rules.json`.
+- Fabric CDC notebook logic: update `notebooks/cqc_fabric_silver_writer.py` (single notebook, two operations).
+- Ordered writer queue behavior: update `src/processing_function/adapters/fabric_write_queue_client.py` and `src/fabric_writer_function/handler.py`.

@@ -4,7 +4,8 @@ Enterprise-grade Azure email processing service that:
 - Prefilters inbound emails with Logic App rules.
 - Processes eligible messages through Service Bus and Azure Functions.
 - Converts attachments to text, validates, and extracts COA fields with confidence.
-- Persists records to Fabric Silver via notebook/job execution.
+- Enqueues Fabric write commands to a dedicated Service Bus writer queue.
+- Persists records to Fabric Silver via a single writer function + notebook/job execution.
 - Sends missing-information requests and applies reply-based updates without rerunning AI.
 
 ## Repository Layout

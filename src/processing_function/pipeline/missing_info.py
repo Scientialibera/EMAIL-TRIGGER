@@ -5,7 +5,7 @@ from src.processing_function.adapters.logic_app_client import LogicAppAdapter
 
 
 def request_missing_information(
-    queue_message: QueueMessage, record: ExtractionRecord, client: LogicAppAdapter
+    queue_message: QueueMessage, record: ExtractionRecord, request_info_header: str, client: LogicAppAdapter
 ) -> None:
     payload = {
         "email_id": record.email_id,
@@ -14,5 +14,6 @@ def request_missing_information(
         "missing_fields": record.missing_fields,
         "recipient": queue_message.sender,
         "subject": f"Missing information required: {queue_message.subject}",
+        "header_name": request_info_header,
     }
     client.send_missing_info_request(payload)

@@ -4,7 +4,7 @@ import logging
 
 from src.common.config.settings import get_settings
 from src.common.logging.telemetry import log_event
-from src.fabric_update_function.adapters.fabric_client import FabricNotebookAdapter
+from src.processing_function.adapters.fabric_write_queue_client import FabricWriteQueueAdapter
 from src.fabric_update_function.updater.apply_update import apply_update
 from src.fabric_update_function.updater.parse_reply import parse_reply_payload
 
@@ -15,8 +15,11 @@ def apply_email_reply_update(payload: dict, logger: logging.Logger) -> dict:
     allowed_fields = set(settings.extraction_schema.get("fields", {}).keys())
 
     update_payload = parse_reply_payload(payload, allowed_fields)
-    fabric_client = FabricNotebookAdapter(settings.fabric_notebook_job_endpoint)
-    result = apply_update(
+    fabric_client = FabricWriteQueueAdapter(
+        namespace_fqdn=settings.servicebus_namespace_fqdn,
+        queue_name=settings.fabric_write_queue_name,
+    )
+    apply_update(
         payload=update_payload,
         fabric_workspace_id=settings.fabric_workspace_id,
         lakehouse_id=settings.fabric_lakehouse_id,
@@ -30,4 +33,4 @@ def apply_email_reply_update(payload: dict, logger: logging.Logger) -> dict:
         email_id=update_payload.email_id,
         updated_fields=list(update_payload.fields_to_update.keys()),
     )
-    return result
+    return {"status": "enqueued", "thread_id": update_payload.thread_id}

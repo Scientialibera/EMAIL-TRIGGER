@@ -10,7 +10,12 @@
   "extensions": {
     "serviceBus": {
       "messageHandlerOptions": {
-        "maxConcurrentCalls": 8,
+        "maxConcurrentCalls": 1,
+        "autoCompleteMessages": false
+      },
+      "sessionHandlerOptions": {
+        "maxConcurrentSessions": 1,
+        "messageWaitTimeout": "00:00:30",
         "autoCompleteMessages": false
       }
     }

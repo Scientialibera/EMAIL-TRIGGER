@@ -21,6 +21,9 @@ param tags object = {
 @description('Name of Service Bus queue used by processing function')
 param serviceBusQueueName string = 'q-cqc-email-process'
 
+@description('Name of Service Bus queue used as Fabric writer command queue')
+param fabricWriteQueueName string = 'q-cqc-fabric-write'
+
 @description('Azure OpenAI resource ID (existing)')
 param aoaiResourceId string
 
@@ -75,6 +78,7 @@ module serviceBus './modules/service-bus.bicep' = {
   params: {
     namespaceName: serviceBusNamespaceName
     queueName: serviceBusQueueName
+    fabricWriteQueueName: fabricWriteQueueName
     location: location
     tags: tags
   }
@@ -138,6 +142,32 @@ module rbacFuncToSb './modules/role-assignment.bicep' = {
   }
 }
 
+module rbacFuncToSbWriteReceiver './modules/role-assignment.bicep' = {
+  name: 'rbac-func-sb-write-receiver'
+  scope: resourceGroup()
+  params: {
+    principalId: functionApp.outputs.principalId
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '4f6d3b9b-027b-4f4c-a5f9-4f8e52f4f0d2'
+    )
+    targetResourceId: serviceBus.outputs.fabricWriteQueueResourceId
+  }
+}
+
+module rbacFuncToSbWriteSender './modules/role-assignment.bicep' = {
+  name: 'rbac-func-sb-write-sender'
+  scope: resourceGroup()
+  params: {
+    principalId: functionApp.outputs.principalId
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
+    )
+    targetResourceId: serviceBus.outputs.fabricWriteQueueResourceId
+  }
+}
+
 module rbacFuncToAoai './modules/role-assignment.bicep' = if (!empty(aoaiInvokeRoleDefinitionId)) {
   name: 'rbac-func-aoai-invoke'
   scope: resourceGroup()
@@ -174,4 +204,6 @@ output logicAppName string = logicApp.outputs.logicAppName
 output logicAppPrincipalId string = logicApp.outputs.principalId
 output serviceBusQueueName string = serviceBus.outputs.queueName
 output serviceBusQueueResourceId string = serviceBus.outputs.queueResourceId
+output fabricWriteQueueName string = serviceBus.outputs.fabricWriteQueueName
+output serviceBusNamespaceName string = serviceBus.outputs.namespaceName
 output keyVaultName string = enableKeyVault ? keyVault.outputs.keyVaultName : ''

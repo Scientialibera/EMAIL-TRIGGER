@@ -7,7 +7,7 @@ from src.common.logging.telemetry import log_event
 from src.common.utils.idempotency import build_idempotency_key, compute_attachment_hash
 from src.common.utils.validation import compute_missing_fields
 from src.processing_function.adapters.doc_intelligence_client import DocumentIntelligenceAdapter
-from src.processing_function.adapters.fabric_client import FabricNotebookAdapter
+from src.processing_function.adapters.fabric_write_queue_client import FabricWriteQueueAdapter
 from src.processing_function.adapters.logic_app_client import LogicAppAdapter
 from src.processing_function.adapters.openai_client import AzureOpenAIAdapter
 from src.processing_function.adapters.service_bus_client import parse_service_bus_message
@@ -26,13 +26,16 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
 
     log_event(logger, "processing_start", correlation_id, message_id=queue_message.message_id)
 
-    if not is_processable(queue_message):
+    if not is_processable(queue_message, settings.processable_headers):
         log_event(logger, "processing_skipped_prefilter", correlation_id, status="rejected")
         return
 
     doc_client = DocumentIntelligenceAdapter(settings.docintel_endpoint)
     ai_client = AzureOpenAIAdapter(settings)
-    fabric_client = FabricNotebookAdapter(settings.fabric_notebook_job_endpoint)
+    fabric_client = FabricWriteQueueAdapter(
+        namespace_fqdn=settings.servicebus_namespace_fqdn,
+        queue_name=settings.fabric_write_queue_name,
+    )
     logic_client = LogicAppAdapter(settings.missing_info_logicapp_url)
 
     text, attachment_names, attachment_bytes = convert_attachments_to_text(
@@ -75,7 +78,12 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
     )
 
     if record.missing_fields:
-        request_missing_information(queue_message=queue_message, record=record, client=logic_client)
+        request_missing_information(
+            queue_message=queue_message,
+            record=record,
+            request_info_header=settings.request_info_header,
+            client=logic_client,
+        )
         log_event(
             logger,
             "missing_info_requested",

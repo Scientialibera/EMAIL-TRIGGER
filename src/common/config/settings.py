@@ -22,6 +22,8 @@ class ModelProfile:
 @dataclass(frozen=True)
 class AppSettings:
     servicebus_queue_name: str
+    fabric_write_queue_name: str
+    servicebus_namespace_fqdn: str
     confidence_threshold_required: float
     active_extraction_schema: str
     aoai_endpoint: str
@@ -32,6 +34,10 @@ class AppSettings:
     fabric_lakehouse_id: str
     fabric_silver_table: str
     missing_info_logicapp_url: str
+    processable_headers: list[str]
+    request_info_header: str
+    fabric_notebook_poll_seconds: int
+    fabric_notebook_wait_timeout_seconds: int
     profile: ModelProfile
     extraction_schema: dict[str, Any]
     validity_prompt: str
@@ -68,6 +74,11 @@ def _load_prompt(kind: str, name: str) -> str:
     return _read_text(prompt_path)
 
 
+def _load_header_rules() -> dict[str, Any]:
+    rules_path = _repo_root() / "src" / "config" / "email_header_rules.json"
+    return json.loads(_read_text(rules_path))
+
+
 def _resolve_env_placeholder(value: str) -> str:
     if value.startswith("${") and value.endswith("}"):
         env_key = value[2:-1]
@@ -82,9 +93,12 @@ def get_settings() -> AppSettings:
 
     profile = _load_profile(active_profile)
     schema = _load_schema(active_schema)
+    header_rules = _load_header_rules()
 
     return AppSettings(
         servicebus_queue_name=os.getenv("SERVICEBUS_QUEUE_NAME", "q-cqc-email-process"),
+        fabric_write_queue_name=os.getenv("FABRIC_WRITE_QUEUE_NAME", "q-cqc-fabric-write"),
+        servicebus_namespace_fqdn=os.getenv("SERVICEBUS_NAMESPACE_FQDN", ""),
         confidence_threshold_required=float(os.getenv("CONFIDENCE_THRESHOLD_REQUIRED", "0.97")),
         active_extraction_schema=active_schema,
         aoai_endpoint=os.getenv("AOAI_ENDPOINT", ""),
@@ -95,6 +109,12 @@ def get_settings() -> AppSettings:
         fabric_lakehouse_id=os.getenv("FABRIC_LAKEHOUSE_ID", ""),
         fabric_silver_table=os.getenv("FABRIC_SILVER_TABLE", "dbo.cqc_email_silver"),
         missing_info_logicapp_url=os.getenv("MISSING_INFO_LOGICAPP_URL", ""),
+        processable_headers=header_rules.get("processable_headers", []),
+        request_info_header=header_rules.get("request_info_header", "CQC-REQUEST-INFO"),
+        fabric_notebook_poll_seconds=int(os.getenv("FABRIC_NOTEBOOK_POLL_SECONDS", "10")),
+        fabric_notebook_wait_timeout_seconds=int(
+            os.getenv("FABRIC_NOTEBOOK_WAIT_TIMEOUT_SECONDS", "1800")
+        ),
         profile=profile,
         extraction_schema=schema,
         validity_prompt=_load_prompt("validity", "validity_v1"),

@@ -21,6 +21,11 @@ Run post-deploy scripts in sequence:
 3. `scripts/az/03_configure_logicapp_connections.ps1`
 4. `scripts/az/04_seed_app_settings.ps1`
 
+The app settings step must include:
+- `SERVICEBUS_NAMESPACE_FQDN`
+- `SERVICEBUS_QUEUE_NAME`
+- `FABRIC_WRITE_QUEUE_NAME`
+
 ## 3) Deploy Function Code
 
 ```powershell
@@ -31,5 +36,7 @@ func azure functionapp publish <func-app-name> --python
 
 - Send a processable email with attachment to the monitored mailbox.
 - Confirm Service Bus message consumption.
+- Confirm command message appears in `q-cqc-fabric-write`.
+- Confirm `ProcessFabricWriteCommand` consumes command messages in order.
 - Confirm Fabric Silver write via notebook job.
 - Send reply email with missing fields and verify `updated` status path.

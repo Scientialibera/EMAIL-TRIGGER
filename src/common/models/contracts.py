@@ -22,6 +22,7 @@ class QueueMessage(BaseModel):
     attachment_refs: list[AttachmentRef] = Field(default_factory=list)
     prefilter_status: Literal["processable", "rejected"]
     correlation_id: str
+    header_name: str | None = None
 
 
 class ExtractedField(BaseModel):

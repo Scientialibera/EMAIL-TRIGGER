@@ -1,5 +1,6 @@
 param namespaceName string
 param queueName string
+param fabricWriteQueueName string
 param location string
 param tags object
 
@@ -24,7 +25,21 @@ resource queue 'Microsoft.ServiceBus/namespaces/queues@2023-01-01-preview' = {
   }
 }
 
+resource fabricWriteQueue 'Microsoft.ServiceBus/namespaces/queues@2023-01-01-preview' = {
+  parent: serviceBusNamespace
+  name: fabricWriteQueueName
+  properties: {
+    requiresSession: true
+    maxDeliveryCount: 10
+    deadLetteringOnMessageExpiration: true
+    lockDuration: 'PT2M'
+    defaultMessageTimeToLive: 'P14D'
+  }
+}
+
 output queueName string = queue.name
 output queueResourceId string = queue.id
+output fabricWriteQueueName string = fabricWriteQueue.name
+output fabricWriteQueueResourceId string = fabricWriteQueue.id
 output namespaceName string = serviceBusNamespace.name
 output namespaceResourceId string = serviceBusNamespace.id
