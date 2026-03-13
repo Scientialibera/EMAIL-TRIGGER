@@ -10,7 +10,8 @@ param(
   [Parameter(Mandatory = $true)][string]$FabricWorkspaceId,
   [Parameter(Mandatory = $true)][string]$FabricLakehouseId,
   [Parameter(Mandatory = $true)][string]$FabricSilverTable,
-  [Parameter(Mandatory = $true)][string]$MissingInfoLogicAppUrl
+  [Parameter(Mandatory = $true)][string]$MissingInfoLogicAppUrl,
+  [Parameter(Mandatory = $true)][string]$RejectionNoticeLogicAppUrl
 )
 
 az functionapp config appsettings set `
@@ -32,4 +33,5 @@ az functionapp config appsettings set `
     "FABRIC_SILVER_TABLE=$FabricSilverTable" `
     "FABRIC_NOTEBOOK_POLL_SECONDS=10" `
     "FABRIC_NOTEBOOK_WAIT_TIMEOUT_SECONDS=1800" `
-    "MISSING_INFO_LOGICAPP_URL=$MissingInfoLogicAppUrl"
+    "MISSING_INFO_LOGICAPP_URL=$MissingInfoLogicAppUrl" `
+    "REJECTION_NOTICE_LOGICAPP_URL=$RejectionNoticeLogicAppUrl"

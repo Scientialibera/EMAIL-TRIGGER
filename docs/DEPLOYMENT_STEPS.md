@@ -29,6 +29,7 @@ The app settings step must include:
 - `SERVICEBUS_NAMESPACE_FQDN`
 - `SERVICEBUS_QUEUE_NAME`
 - `FABRIC_WRITE_QUEUE_NAME`
+- `REJECTION_NOTICE_LOGICAPP_URL`
 
 ## 3) Deploy Function Code
 
@@ -65,5 +66,6 @@ The app settings step must include:
   -FabricNotebookJobEndpoint https://api.fabric.microsoft.com/v1/workspaces/<ws>/items/<notebook>/jobs/instances?jobType=RunNotebook `
   -FabricLakehouseId <lakehouse-id> `
   -FabricSilverTable dbo.cqc_email_silver `
-  -MissingInfoLogicAppUrl https://<logic-app-invoke-url>
+  -MissingInfoLogicAppUrl https://<logic-app-invoke-url> `
+  -RejectionNoticeLogicAppUrl https://<logic-app-invoke-url>
 ```

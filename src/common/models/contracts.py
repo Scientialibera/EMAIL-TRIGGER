@@ -10,6 +10,7 @@ class AttachmentRef(BaseModel):
     content_type: str
     size_bytes: int = 0
     content_base64: str | None = None
+    preview_images_base64: list[str] = Field(default_factory=list)
 
 
 class ThreadMessage(BaseModel):
@@ -18,6 +19,8 @@ class ThreadMessage(BaseModel):
     sender: str | None = None
     received_timestamp: str | None = None
     body_text: str | None = None
+    body_html: str | None = None
+    inline_images_base64: list[str] = Field(default_factory=list)
     attachment_refs: list[AttachmentRef] = Field(default_factory=list)
 
 
@@ -34,6 +37,8 @@ class QueueMessage(BaseModel):
     header_name: str | None = None
     thread_title: str | None = None
     body_text: str | None = None
+    body_html: str | None = None
+    inline_images_base64: list[str] = Field(default_factory=list)
     thread_messages: list[ThreadMessage] = Field(default_factory=list)
 
 

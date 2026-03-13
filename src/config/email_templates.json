@@ -1,0 +1,6 @@
+{
+  "rejection_subject_template": "Email rejected: {subject}",
+  "rejection_body_template": "Your email could not be processed automatically. Reason: {reason}. Thread: {thread_id}.",
+  "missing_info_subject_template": "Missing information required: {subject}",
+  "missing_info_body_template": "Please provide the following missing fields: {missing_fields}. Thread: {thread_id}."
+}

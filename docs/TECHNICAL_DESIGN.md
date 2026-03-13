@@ -12,12 +12,20 @@ This repository implements the CQC email processor architecture:
 - Azure Function `ApplyEmailReplyUpdate`.
 - Azure Function `ProcessFabricWriteCommand` (single writer consumer).
 - Azure Document Intelligence text extraction.
-- Azure OpenAI validity and schema extraction.
+- Azure OpenAI validity function-call (`approved`, `reason`) and schema extraction.
 - Fabric notebook execution for Silver persistence and reply updates.
 
 Core design constraints:
 - Managed identity + `DefaultAzureCredential`.
 - Configuration-driven schema/prompt/model behavior.
+- Configurable rejection/missing-info email templates.
 - Idempotency using `internet_message_id` + attachment hash.
 - Ordered Fabric writes by publishing commands to a session-enabled writer queue (`session_id = thread_id`).
 - DLQ-safe processing with correlation logging.
+- Multimodal prompt context: structured thread text + attachment/email images when available.
+
+## Current Validity Policy
+
+- The validity gate currently rejects only when supplier name is missing or cannot be identified.
+- Other missing fields (for example moisture, cadmium, lead) do not cause validity rejection and are handled through missing-information workflow.
+- This policy is defined in `src/prompts/validity/validity_v1.txt` under the "Decision policy" section and is intentionally easy to update.

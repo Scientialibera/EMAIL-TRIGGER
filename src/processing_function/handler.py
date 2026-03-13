@@ -15,8 +15,10 @@ from src.processing_function.pipeline.context_builder import build_llm_context
 from src.processing_function.pipeline.convert_to_text import convert_attachments_to_text
 from src.processing_function.pipeline.extraction import extract_record
 from src.processing_function.pipeline.missing_info import request_missing_information
+from src.processing_function.pipeline.multimodal import collect_image_data_urls
 from src.processing_function.pipeline.persist import persist_record
 from src.processing_function.pipeline.prefilter import is_processable
+from src.processing_function.pipeline.rejection_notice import send_rejection_notice
 from src.processing_function.pipeline.validity_check import evaluate_validity
 
 
@@ -37,19 +39,31 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
         namespace_fqdn=settings.servicebus_namespace_fqdn,
         queue_name=settings.fabric_write_queue_name,
     )
-    logic_client = LogicAppAdapter(settings.missing_info_logicapp_url)
+    logic_client = LogicAppAdapter(
+        invoke_url=settings.missing_info_logicapp_url,
+        rejection_invoke_url=settings.rejection_notice_logicapp_url,
+    )
 
     extracted_attachments, attachment_names, attachment_bytes = convert_attachments_to_text(
         queue_message.attachment_refs, doc_client
     )
     llm_context = build_llm_context(queue_message, extracted_attachments)
+    image_data_urls = collect_image_data_urls(queue_message, extracted_attachments)
 
     attachment_hashes = [compute_attachment_hash(x) for x in attachment_bytes]
     idem_key = build_idempotency_key(queue_message.internet_message_id, attachment_hashes)
     log_event(logger, "idempotency_key_computed", correlation_id, idempotency_key=idem_key)
 
-    is_valid, reason = evaluate_validity(llm_context, ai_client)
+    is_valid, reason = evaluate_validity(llm_context, image_data_urls, ai_client)
     if not is_valid:
+        send_rejection_notice(
+            queue_message=queue_message,
+            reason=reason,
+            subject_template=settings.rejection_subject_template,
+            body_template=settings.rejection_body_template,
+            thread_context=llm_context,
+            client=logic_client,
+        )
         log_event(logger, "validity_rejected", correlation_id, reason=reason)
         return
 
@@ -59,6 +73,7 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
         receive_timestamp=queue_message.received_timestamp,
         attachment_names=attachment_names,
         text=llm_context,
+        image_data_urls=image_data_urls,
         schema=settings.extraction_schema,
         model_name=settings.profile.extraction_model,
         correlation_id=correlation_id,
@@ -84,6 +99,9 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
             queue_message=queue_message,
             record=record,
             request_info_header=settings.request_info_header,
+            subject_template=settings.missing_info_subject_template,
+            body_template=settings.missing_info_body_template,
+            thread_context=llm_context,
             client=logic_client,
         )
         log_event(

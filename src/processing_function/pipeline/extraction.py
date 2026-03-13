@@ -12,12 +12,13 @@ def extract_record(
     receive_timestamp: str,
     attachment_names: list[str],
     text: str,
+    image_data_urls: list[str],
     schema: dict,
     model_name: str,
     correlation_id: str,
     client: AzureOpenAIAdapter,
 ) -> ExtractionRecord:
-    fields = client.extract_fields(text, schema)
+    fields = client.extract_fields(text, schema, image_data_urls=image_data_urls)
     payload = {
         "email_id": email_id,
         "thread_id": thread_id,

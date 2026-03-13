@@ -34,6 +34,7 @@ class AppSettings:
     fabric_lakehouse_id: str
     fabric_silver_table: str
     missing_info_logicapp_url: str
+    rejection_notice_logicapp_url: str
     processable_headers: list[str]
     request_info_header: str
     fabric_notebook_poll_seconds: int
@@ -42,6 +43,10 @@ class AppSettings:
     extraction_schema: dict[str, Any]
     validity_prompt: str
     extraction_prompt: str
+    rejection_subject_template: str
+    rejection_body_template: str
+    missing_info_subject_template: str
+    missing_info_body_template: str
 
 
 def _repo_root() -> Path:
@@ -79,6 +84,11 @@ def _load_header_rules() -> dict[str, Any]:
     return json.loads(_read_text(rules_path))
 
 
+def _load_email_templates() -> dict[str, Any]:
+    templates_path = _repo_root() / "src" / "config" / "email_templates.json"
+    return json.loads(_read_text(templates_path))
+
+
 def _resolve_env_placeholder(value: str) -> str:
     if value.startswith("${") and value.endswith("}"):
         env_key = value[2:-1]
@@ -94,6 +104,7 @@ def get_settings() -> AppSettings:
     profile = _load_profile(active_profile)
     schema = _load_schema(active_schema)
     header_rules = _load_header_rules()
+    templates = _load_email_templates()
 
     return AppSettings(
         servicebus_queue_name=os.getenv("SERVICEBUS_QUEUE_NAME", "q-cqc-email-process"),
@@ -109,6 +120,7 @@ def get_settings() -> AppSettings:
         fabric_lakehouse_id=os.getenv("FABRIC_LAKEHOUSE_ID", ""),
         fabric_silver_table=os.getenv("FABRIC_SILVER_TABLE", "dbo.cqc_email_silver"),
         missing_info_logicapp_url=os.getenv("MISSING_INFO_LOGICAPP_URL", ""),
+        rejection_notice_logicapp_url=os.getenv("REJECTION_NOTICE_LOGICAPP_URL", ""),
         processable_headers=header_rules.get("processable_headers", []),
         request_info_header=header_rules.get("request_info_header", "CQC-REQUEST-INFO"),
         fabric_notebook_poll_seconds=int(os.getenv("FABRIC_NOTEBOOK_POLL_SECONDS", "10")),
@@ -119,4 +131,18 @@ def get_settings() -> AppSettings:
         extraction_schema=schema,
         validity_prompt=_load_prompt("validity", "validity_v1"),
         extraction_prompt=_load_prompt("extraction", "extraction_v1"),
+        rejection_subject_template=templates.get(
+            "rejection_subject_template", "Email rejected: {subject}"
+        ),
+        rejection_body_template=templates.get(
+            "rejection_body_template",
+            "Your email could not be processed automatically. Reason: {reason}. Thread: {thread_id}.",
+        ),
+        missing_info_subject_template=templates.get(
+            "missing_info_subject_template", "Missing information required: {subject}"
+        ),
+        missing_info_body_template=templates.get(
+            "missing_info_body_template",
+            "Please provide the following missing fields: {missing_fields}. Thread: {thread_id}.",
+        ),
     )

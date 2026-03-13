@@ -15,6 +15,12 @@
 - `DependencyTimeout`: Retry exhausted for AOAI, Doc Intelligence, or Fabric API.
 - `ValidationError`: Invalid queue/reply payload.
 
+## Validity Gate Policy
+
+- Current rule: reject only when supplier name is missing.
+- Do not reject for missing analyte/table values; those are completed through request-for-information flow.
+- To change rejection logic, update `src/prompts/validity/validity_v1.txt` in the "Decision policy" section.
+
 ## DLQ Procedure
 
 1. Inspect dead-letter reason and correlation id.
@@ -28,5 +34,6 @@
 - Prompt changes: update `src/prompts/**`.
 - Model switch: update `src/model_profiles/*.yaml` and set `ACTIVE_MODEL_PROFILE`.
 - Header rule changes: update `src/config/email_header_rules.json`.
+- Email template changes: update `src/config/email_templates.json`.
 - Fabric CDC notebook logic: update `notebooks/cqc_fabric_silver_writer.py` (single notebook, two operations).
 - Ordered writer queue behavior: update `src/processing_function/adapters/fabric_write_queue_client.py` and `src/fabric_writer_function/handler.py`.

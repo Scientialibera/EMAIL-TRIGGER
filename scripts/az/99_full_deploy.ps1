@@ -13,7 +13,8 @@ param(
   [Parameter(Mandatory = $true)][string]$FabricNotebookJobEndpoint,
   [Parameter(Mandatory = $true)][string]$FabricLakehouseId,
   [Parameter(Mandatory = $true)][string]$FabricSilverTable,
-  [Parameter(Mandatory = $true)][string]$MissingInfoLogicAppUrl
+  [Parameter(Mandatory = $true)][string]$MissingInfoLogicAppUrl,
+  [Parameter(Mandatory = $true)][string]$RejectionNoticeLogicAppUrl
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,7 +58,8 @@ $functionAppName = az deployment group show --resource-group $ResourceGroup --na
   -FabricWorkspaceId $FabricWorkspaceId `
   -FabricLakehouseId $FabricLakehouseId `
   -FabricSilverTable $FabricSilverTable `
-  -MissingInfoLogicAppUrl $MissingInfoLogicAppUrl
+  -MissingInfoLogicAppUrl $MissingInfoLogicAppUrl `
+  -RejectionNoticeLogicAppUrl $RejectionNoticeLogicAppUrl
 
 & "scripts/az/05_publish_function.ps1" `
   -ResourceGroup $ResourceGroup `

@@ -22,6 +22,7 @@
     "FABRIC_LAKEHOUSE_ID": "lakehouse-guid",
     "FABRIC_SILVER_TABLE": "dbo.cqc_email_silver",
     "MISSING_INFO_LOGICAPP_URL": "https://prod-00.region.logic.azure.com/workflows/.../triggers/manual/paths/invoke",
+    "REJECTION_NOTICE_LOGICAPP_URL": "https://prod-00.region.logic.azure.com/workflows/.../triggers/manual/paths/invoke",
     "ENABLE_KEYVAULT": "false"
   }
 }
