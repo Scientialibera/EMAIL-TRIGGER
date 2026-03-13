@@ -1,15 +1,32 @@
 param(
   [Parameter(Mandatory = $true)][string]$ResourceGroup,
-  [Parameter(Mandatory = $true)][string]$FunctionPrincipalId,
-  [Parameter(Mandatory = $true)][string]$LogicAppPrincipalId,
-  [Parameter(Mandatory = $true)][string]$ServiceBusNamespace,
-  [Parameter(Mandatory = $true)][string]$QueueName,
-  [Parameter(Mandatory = $true)][string]$FabricWriteQueueName,
+  [Parameter(Mandatory = $false)][string]$FunctionPrincipalId = "",
+  [Parameter(Mandatory = $false)][string]$LogicAppPrincipalId = "",
+  [Parameter(Mandatory = $false)][string]$ServiceBusNamespace = "",
+  [Parameter(Mandatory = $false)][string]$QueueName = "",
+  [Parameter(Mandatory = $false)][string]$FabricWriteQueueName = "",
+  [Parameter(Mandatory = $false)][string]$DeploymentName = "cqc-email-infra",
   [Parameter(Mandatory = $false)][string]$AoaiResourceId = "",
   [Parameter(Mandatory = $false)][string]$DocIntelResourceId = "",
   [Parameter(Mandatory = $false)][string]$AoaiRoleDefinitionId = "",
   [Parameter(Mandatory = $false)][string]$DocIntelRoleDefinitionId = ""
 )
+
+$ErrorActionPreference = "Stop"
+
+if (-not $FunctionPrincipalId -or -not $LogicAppPrincipalId -or -not $QueueName -or -not $FabricWriteQueueName -or -not $ServiceBusNamespace) {
+  $outputs = az deployment group show `
+    --resource-group $ResourceGroup `
+    --name $DeploymentName `
+    --query properties.outputs `
+    -o json | ConvertFrom-Json
+
+  if (-not $FunctionPrincipalId) { $FunctionPrincipalId = $outputs.functionPrincipalId.value }
+  if (-not $LogicAppPrincipalId) { $LogicAppPrincipalId = $outputs.logicAppPrincipalId.value }
+  if (-not $QueueName) { $QueueName = $outputs.serviceBusQueueName.value }
+  if (-not $FabricWriteQueueName) { $FabricWriteQueueName = $outputs.fabricWriteQueueName.value }
+  if (-not $ServiceBusNamespace) { $ServiceBusNamespace = $outputs.serviceBusNamespaceName.value }
+}
 
 $queueScope = "/subscriptions/$((az account show --query id -o tsv))/resourceGroups/$ResourceGroup/providers/Microsoft.ServiceBus/namespaces/$ServiceBusNamespace/queues/$QueueName"
 $fabricWriteQueueScope = "/subscriptions/$((az account show --query id -o tsv))/resourceGroups/$ResourceGroup/providers/Microsoft.ServiceBus/namespaces/$ServiceBusNamespace/queues/$FabricWriteQueueName"

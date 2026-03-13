@@ -40,3 +40,12 @@ docs/                # Design + deployment + runbook docs
 Use Bicep templates under `infra/bicep` plus operational scripts under `scripts/az`.
 
 Step-by-step operator commands are in `docs/DEPLOYMENT_STEPS.md`.
+
+Operator scripts included:
+- `scripts/az/00_deploy_infra.ps1` - deploys resource group + Bicep stack
+- `scripts/az/01_post_deploy_rbac.ps1` - sets Service Bus and optional dependency RBAC
+- `scripts/az/02_add_function_mi_to_fabric.ps1` - adds Function MI to Fabric workspace role
+- `scripts/az/03_configure_logicapp_connections.ps1` - configures Logic App connector references
+- `scripts/az/04_seed_app_settings.ps1` - applies required Function app settings
+- `scripts/az/05_publish_function.ps1` - publishes Function code
+- `scripts/az/99_full_deploy.ps1` - runs end-to-end flow in one command
