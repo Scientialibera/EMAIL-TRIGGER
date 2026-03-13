@@ -5,5 +5,7 @@ Return strictly valid JSON:
   "reason": "short explanation"
 }
 Rules:
+- The thread can contain revisions; evaluate the latest message and latest table first.
+- If a newer message supersedes an older table, treat the latest valid COA table as authoritative.
 - True when attachment text appears to be a certificate of analysis and contains analyte/value patterns.
 - False for non-COA documents, logistics notices, signatures-only emails, or insufficient content.

@@ -9,6 +9,10 @@ Return strictly valid JSON where each field is an array of objects:
   ]
 }
 Requirements:
+- The email thread may evolve over time. Prioritize the latest update in the thread.
+- If multiple tables are present across the thread, extract from the latest valid COA table.
+- Prefer the most recent message and its attachments when values conflict with older messages.
+- Use older messages only as supporting context when latest content is incomplete.
 - Do not invent values.
 - Set confidence low for weak evidence.
 - Use empty array or null value with low confidence when missing.
