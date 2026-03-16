@@ -1,0 +1,69 @@
+[azure]
+subscription_id = ""
+location = "eastus2"
+resource_group_name = ""
+
+[naming]
+prefix = "emailtrigger"
+function_app_name = ""
+storage_account_name = ""
+servicebus_namespace_name = ""
+
+[queues]
+process_queue_name = "q-cqc-email-process"
+fabric_write_queue_name = "q-cqc-fabric-write"
+
+[storage]
+prompts_container_name = "prompts"
+
+[prompts]
+validity_blob_name = "validity/validity_v1.txt"
+extraction_blob_name = "extraction/extraction_v1.txt"
+
+[dependencies]
+aoai_resource_id = ""
+docintel_resource_id = ""
+aoai_endpoint = ""
+docintel_endpoint = ""
+aoai_invoke_role_definition_id = ""
+docintel_invoke_role_definition_id = ""
+
+[logic_app]
+missing_info_logicapp_url = ""
+rejection_notice_logicapp_url = ""
+
+[mailbox]
+target_shared_mailbox = ""
+missing_info_sender_mailbox = ""
+rejection_sender_mailbox = ""
+logic_app_connector_identity_upn = ""
+
+[fabric]
+workspace_id = ""
+workspace_role_for_function_mi = "Contributor"
+root_folder_name = "notebooks"
+main_folder_name = "main"
+modules_folder_name = "modules"
+lakehouse_name = "emailtrigger_lakehouse"
+lakehouse_id = ""
+silver_table_name = "dbo.cqc_email_silver"
+writer_notebook_display_name = "cqc_silver_writer_main"
+bootstrap_notebook_display_name = "cqc_silver_bootstrap_main"
+push_notebooks = true
+run_bootstrap_table_notebook = true
+
+[paths]
+writer_main_notebook_source = "deploy/assets/fabric/notebooks/main/cqc_silver_writer_main.py"
+writer_module_notebook_source = "deploy/assets/fabric/notebooks/modules/cqc_silver_module.py"
+bootstrap_main_notebook_source = "deploy/assets/fabric/notebooks/main/cqc_silver_bootstrap_main.py"
+bootstrap_module_notebook_source = "deploy/assets/fabric/notebooks/modules/cqc_silver_bootstrap_module.py"
+validity_prompt_source = "src/prompts/validity/validity_v1.txt"
+extraction_prompt_source = "src/prompts/extraction/extraction_v1.txt"
+
+[app_settings]
+active_model_profile = "default"
+active_extraction_schema = "coa_v1"
+confidence_threshold_required = 0.97
+aoai_api_version = "2024-06-01"
+fabric_notebook_poll_seconds = 10
+fabric_notebook_wait_timeout_seconds = 1800

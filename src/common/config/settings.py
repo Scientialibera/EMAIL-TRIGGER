@@ -7,6 +7,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from azure.storage.blob import BlobServiceClient
+from src.common.auth.credentials import get_credential
 import yaml
 
 
@@ -75,8 +77,28 @@ def _load_schema(schema_name: str) -> dict[str, Any]:
 
 
 def _load_prompt(kind: str, name: str) -> str:
+    storage_account = os.getenv("STORAGE_ACCOUNT_NAME", "")
+    prompts_container = os.getenv("PROMPTS_CONTAINER_NAME", "")
+    if storage_account and prompts_container:
+        blob_name = os.getenv(f"{kind.upper()}_PROMPT_BLOB_NAME", f"{kind}/{name}.txt")
+        account_url = f"https://{storage_account}.blob.core.windows.net"
+        credential = get_credential()
+        try:
+            client = BlobServiceClient(account_url=account_url, credential=credential)
+            blob = client.get_blob_client(container=prompts_container, blob=blob_name)
+            return blob.download_blob().readall().decode("utf-8-sig")
+        except Exception:
+            # Fall back to local prompt files to preserve local dev ergonomics.
+            pass
+
     prompt_path = _repo_root() / "src" / "prompts" / kind / f"{name}.txt"
     return _read_text(prompt_path)
+
+
+def _require_non_empty(value: str, key: str) -> str:
+    if not value:
+        raise ValueError(f"Missing required configuration: {key}")
+    return value
 
 
 def _load_header_rules() -> dict[str, Any]:
@@ -109,18 +131,30 @@ def get_settings() -> AppSettings:
     return AppSettings(
         servicebus_queue_name=os.getenv("SERVICEBUS_QUEUE_NAME", "q-cqc-email-process"),
         fabric_write_queue_name=os.getenv("FABRIC_WRITE_QUEUE_NAME", "q-cqc-fabric-write"),
-        servicebus_namespace_fqdn=os.getenv("SERVICEBUS_NAMESPACE_FQDN", ""),
+        servicebus_namespace_fqdn=_require_non_empty(
+            os.getenv("SERVICEBUS_NAMESPACE_FQDN", ""), "SERVICEBUS_NAMESPACE_FQDN"
+        ),
         confidence_threshold_required=float(os.getenv("CONFIDENCE_THRESHOLD_REQUIRED", "0.97")),
         active_extraction_schema=active_schema,
-        aoai_endpoint=os.getenv("AOAI_ENDPOINT", ""),
+        aoai_endpoint=_require_non_empty(os.getenv("AOAI_ENDPOINT", ""), "AOAI_ENDPOINT"),
         aoai_api_version=os.getenv("AOAI_API_VERSION", "2024-06-01"),
-        docintel_endpoint=os.getenv("DOCINTEL_ENDPOINT", ""),
-        fabric_notebook_job_endpoint=os.getenv("FABRIC_NOTEBOOK_JOB_ENDPOINT", ""),
-        fabric_workspace_id=os.getenv("FABRIC_WORKSPACE_ID", ""),
-        fabric_lakehouse_id=os.getenv("FABRIC_LAKEHOUSE_ID", ""),
+        docintel_endpoint=_require_non_empty(os.getenv("DOCINTEL_ENDPOINT", ""), "DOCINTEL_ENDPOINT"),
+        fabric_notebook_job_endpoint=_require_non_empty(
+            os.getenv("FABRIC_NOTEBOOK_JOB_ENDPOINT", ""), "FABRIC_NOTEBOOK_JOB_ENDPOINT"
+        ),
+        fabric_workspace_id=_require_non_empty(
+            os.getenv("FABRIC_WORKSPACE_ID", ""), "FABRIC_WORKSPACE_ID"
+        ),
+        fabric_lakehouse_id=_require_non_empty(
+            os.getenv("FABRIC_LAKEHOUSE_ID", ""), "FABRIC_LAKEHOUSE_ID"
+        ),
         fabric_silver_table=os.getenv("FABRIC_SILVER_TABLE", "dbo.cqc_email_silver"),
-        missing_info_logicapp_url=os.getenv("MISSING_INFO_LOGICAPP_URL", ""),
-        rejection_notice_logicapp_url=os.getenv("REJECTION_NOTICE_LOGICAPP_URL", ""),
+        missing_info_logicapp_url=_require_non_empty(
+            os.getenv("MISSING_INFO_LOGICAPP_URL", ""), "MISSING_INFO_LOGICAPP_URL"
+        ),
+        rejection_notice_logicapp_url=_require_non_empty(
+            os.getenv("REJECTION_NOTICE_LOGICAPP_URL", ""), "REJECTION_NOTICE_LOGICAPP_URL"
+        ),
         processable_headers=header_rules.get("processable_headers", []),
         request_info_header=header_rules.get("request_info_header", "CQC-REQUEST-INFO"),
         fabric_notebook_poll_seconds=int(os.getenv("FABRIC_NOTEBOOK_POLL_SECONDS", "10")),

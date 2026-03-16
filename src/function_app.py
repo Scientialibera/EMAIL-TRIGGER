@@ -35,10 +35,17 @@ def apply_email_reply_update_trigger(req: func.HttpRequest) -> func.HttpResponse
             status_code=200,
             mimetype="application/json",
         )
-    except Exception as exc:  # pragma: no cover
-        logging.exception("reply update failed: %s", exc)
+    except ValueError as exc:
+        logging.warning("reply update validation failed: %s", exc)
         return func.HttpResponse(
-            body=json.dumps({"status": "error", "error": str(exc)}),
+            body=json.dumps({"status": "error", "error": "invalid request payload"}),
+            status_code=400,
+            mimetype="application/json",
+        )
+    except Exception:  # pragma: no cover
+        logging.exception("reply update failed")
+        return func.HttpResponse(
+            body=json.dumps({"status": "error", "error": "internal server error"}),
             status_code=500,
             mimetype="application/json",
         )

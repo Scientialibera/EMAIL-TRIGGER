@@ -10,12 +10,12 @@ class LogicAppAdapter:
 
     def send_missing_info_request(self, payload: dict) -> None:
         if not self._invoke_url:
-            return
+            raise ValueError("Missing Logic App URL for missing-info notifications.")
         response = requests.post(self._invoke_url, json=payload, timeout=30)
         response.raise_for_status()
 
     def send_rejection_notice(self, payload: dict) -> None:
         if not self._rejection_invoke_url:
-            return
+            raise ValueError("Missing Logic App URL for rejection notifications.")
         response = requests.post(self._rejection_invoke_url, json=payload, timeout=30)
         response.raise_for_status()

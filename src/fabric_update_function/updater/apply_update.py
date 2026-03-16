@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from src.common.models.fabric_commands import FabricWriteCommand
 from src.common.models.contracts import ReplyUpdatePayload
+from src.common.utils.fabric_command_builder import build_fabric_write_command
 from src.processing_function.adapters.fabric_write_queue_client import FabricWriteQueueAdapter
 
 
@@ -14,14 +14,14 @@ def apply_update(
     table_name: str,
     client: FabricWriteQueueAdapter,
 ) -> None:
-    command = FabricWriteCommand(
+    command = build_fabric_write_command(
         operation="apply_reply_update_cdc",
         thread_id=payload.thread_id,
         correlation_id=payload.correlation_id,
+        fabric_workspace_id=fabric_workspace_id,
+        lakehouse_id=lakehouse_id,
+        table_name=table_name,
         payload={
-            "workspace_id": fabric_workspace_id,
-            "lakehouse_id": lakehouse_id,
-            "table": table_name,
             "email_id": payload.email_id,
             "thread_id": payload.thread_id,
             "fields_to_update": payload.fields_to_update,

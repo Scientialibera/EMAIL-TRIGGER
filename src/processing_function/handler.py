@@ -4,7 +4,6 @@ import logging
 
 from src.common.config.settings import get_settings
 from src.common.logging.telemetry import log_event
-from src.common.utils.idempotency import build_idempotency_key, compute_attachment_hash
 from src.common.utils.validation import compute_missing_fields
 from src.processing_function.adapters.doc_intelligence_client import DocumentIntelligenceAdapter
 from src.processing_function.adapters.fabric_write_queue_client import FabricWriteQueueAdapter
@@ -44,15 +43,11 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
         rejection_invoke_url=settings.rejection_notice_logicapp_url,
     )
 
-    extracted_attachments, attachment_names, attachment_bytes = convert_attachments_to_text(
+    extracted_attachments, attachment_names, _attachment_bytes = convert_attachments_to_text(
         queue_message.attachment_refs, doc_client
     )
     llm_context = build_llm_context(queue_message, extracted_attachments)
     image_data_urls = collect_image_data_urls(queue_message, extracted_attachments)
-
-    attachment_hashes = [compute_attachment_hash(x) for x in attachment_bytes]
-    idem_key = build_idempotency_key(queue_message.internet_message_id, attachment_hashes)
-    log_event(logger, "idempotency_key_computed", correlation_id, idempotency_key=idem_key)
 
     is_valid, reason = evaluate_validity(llm_context, image_data_urls, ai_client)
     if not is_valid:

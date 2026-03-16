@@ -8,11 +8,32 @@ Enterprise-grade Azure email processing service that:
 - Persists records to Fabric Silver via a single writer function + notebook/job execution.
 - Sends missing-information requests and applies reply-based updates without rerunning AI.
 
+## Architecture
+
+[![CQC Email Processor Architecture](docs/architecture.png)](docs/architecture.png)
+
+## Step-by-step Flow
+
+1. An inbound email arrives and Logic App applies prefilter/header rules.
+2. If processable, Logic App sends a message to Service Bus processing queue.
+3. `ProcessEmailMessage` function consumes the message, converts attachments to text, and runs validity + extraction.
+4. The function builds a Fabric write command and pushes it to the dedicated Fabric writer queue.
+5. `ProcessFabricWriteCommand` runs the configured Fabric notebook job to persist/update Silver records.
+6. If data is incomplete, the missing-info branch sends a request email and later applies reply updates without rerunning extraction.
+
+## Design Principles
+
+- **Config-first runtime**: endpoints, queues, Fabric targets, and model profiles are supplied via app settings/deploy config, not hardcoded in handlers.
+- **Separation of concerns**: triggers remain thin, handlers orchestrate, and adapters encapsulate external services (OpenAI, DocIntel, Service Bus, Logic Apps, Fabric).
+- **Idempotent deployment**: infra/function steps are split and repeatable; scripts re-apply state safely.
+- **Cloud-managed prompts**: prompts are sourced from blob storage and seeded during function deployment.
+- **Fail-fast safety**: required runtime settings are validated early to avoid silent operational failures.
+- **Flex + identity triggers**: Service Bus triggers use Python v2 decorators with identity-based app settings (`SERVICEBUS_CONNECTION__fullyQualifiedNamespace`) on Flex Consumption.
+
 ## Repository Layout
 
 ```text
-infra/               # Bicep templates and env parameters
-scripts/             # Post-deploy operational scripts
+deploy/              # CLI-based infra/function/fabric deployment scripts
 src/                 # Azure Function app and modules
 tests/               # Unit, contract, and integration tests
 docs/                # Design + deployment + runbook docs
@@ -37,15 +58,22 @@ docs/                # Design + deployment + runbook docs
 
 ## Deployment
 
-Use Bicep templates under `infra/bicep` plus operational scripts under `scripts/az`.
+Use the config-driven deployment flow in `deploy/`:
 
-Step-by-step operator commands are in `docs/DEPLOYMENT_STEPS.md`.
+- `deploy/deploy.config.toml` - single source of deployment/runtime configuration
+- `deploy/deploy-infra.ps1` - deploy Azure infra + Flex Function + RBAC + Fabric bootstrap + app settings
+- `deploy/deploy-function.ps1` - publish Function code, seed prompt blobs, and sync triggers
+- `deploy/deploy-fabric.ps1` - reusable Fabric bootstrap script (folders, notebooks, lakehouse/table)
 
-Operator scripts included:
-- `scripts/az/00_deploy_infra.ps1` - deploys resource group + Bicep stack
-- `scripts/az/01_post_deploy_rbac.ps1` - sets Service Bus and optional dependency RBAC
-- `scripts/az/02_add_function_mi_to_fabric.ps1` - adds Function MI to Fabric workspace role
-- `scripts/az/03_configure_logicapp_connections.ps1` - configures Logic App connector references
-- `scripts/az/04_seed_app_settings.ps1` - applies required Function app settings
-- `scripts/az/05_publish_function.ps1` - publishes Function code
-- `scripts/az/99_full_deploy.ps1` - runs end-to-end flow in one command
+Mailbox access note:
+- Shared mailbox/sender mailboxes are assumed to already exist.
+- Exchange Online permissions for the Logic App connector identity are required (`FullAccess` / `SendAs`) and are outside Azure RBAC.
+
+Run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "deploy/deploy-infra.ps1" -ConfigPath "deploy/deploy.config.toml"
+powershell -ExecutionPolicy Bypass -File "deploy/deploy-function.ps1" -ConfigPath "deploy/deploy.config.toml"
+```
+
+Detailed deployment notes are in `deploy/README.md`.
