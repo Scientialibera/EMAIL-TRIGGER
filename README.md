@@ -66,15 +66,32 @@ Use the config-driven deployment flow in `deploy/`:
 - `deploy/deploy-function.ps1` - publish Function code, seed prompt blobs, and sync triggers
 - `deploy/deploy-fabric.ps1` - reusable Fabric bootstrap script (folders, notebooks, lakehouse/table)
 
-Mailbox access note:
-- Shared mailbox/sender mailboxes are assumed to already exist.
-- Exchange Online permissions for the Logic App connector identity are required (`FullAccess` / `SendAs`) and are outside Azure RBAC.
-
 Run:
 
 ```powershell
+# 1. Deploy Azure infra, RBAC, Fabric, and app settings
 powershell -ExecutionPolicy Bypass -File "deploy/deploy-infra.ps1" -ConfigPath "deploy/deploy.config.toml"
+
+# 2. Create Exchange Online mailboxes and grant permissions
+powershell -ExecutionPolicy Bypass -File "deploy/deploy-exchange.ps1" -ConfigPath "deploy/deploy.config.toml" -AdminUpn "admin@yourdomain.com"
+
+# 3. Publish Function code and seed prompts
 powershell -ExecutionPolicy Bypass -File "deploy/deploy-function.ps1" -ConfigPath "deploy/deploy.config.toml"
 ```
+
+### Manual step after deployment
+
+The Logic App Office 365 Outlook connectors require a **one-time OAuth sign-in**
+that cannot be automated. After running all deploy scripts and waiting up to 2
+hours for Exchange permission replication:
+
+1. Open each Logic App in the **Azure Portal** (Prefilter, Missing Info,
+   Rejection, Reply Monitor)
+2. Go to **Logic App Designer**
+3. Click the Office 365 Outlook connector and select **Change connection**
+4. Sign in with the service account (`svc-cqc-logicapp@yourdomain.com`)
+5. Save the Logic App
+
+After this one-time step the pipeline runs fully programmatically.
 
 Detailed deployment notes are in `deploy/README.md`.

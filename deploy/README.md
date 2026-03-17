@@ -14,6 +14,13 @@ This folder provides an idempotent, split deployment flow with a single config f
    - seeds prompt files to the prompts blob container
    - syncs Function trigger metadata
 
+3. `deploy/deploy-exchange.ps1`  
+   - installs/imports the ExchangeOnlineManagement module
+   - creates shared mailboxes (inbound + sender) if they don't exist
+   - grants FullAccess and SendAs permissions to the connector service account
+   - enables sent-message copy on the sender mailbox
+   - validates all permissions
+
 ## Configure once
 
 Update `deploy/deploy.config.toml`:
@@ -23,23 +30,45 @@ Update `deploy/deploy.config.toml`:
 - Existing AOAI and DocIntel resource IDs + endpoints
 - Fabric workspace ID and folder/lakehouse/notebook/table preferences
 - Logic App callback URLs
-- Mailbox assumptions (existing shared mailbox + sender mailboxes + connector identity UPN)
+- Mailbox addresses and connector service account UPN (under `[mailbox]`)
 
 ## Run
 
 ```powershell
+# 1. Deploy Azure infra, RBAC, Fabric, and app settings
 powershell -ExecutionPolicy Bypass -File "deploy/deploy-infra.ps1" -ConfigPath "deploy/deploy.config.toml"
+
+# 2. Create Exchange Online mailboxes and grant permissions
+powershell -ExecutionPolicy Bypass -File "deploy/deploy-exchange.ps1" -ConfigPath "deploy/deploy.config.toml" -AdminUpn "admin@yourdomain.com"
+
+# 3. Publish Function code and seed prompts
 powershell -ExecutionPolicy Bypass -File "deploy/deploy-function.ps1" -ConfigPath "deploy/deploy.config.toml"
 ```
 
-## Exchange Online prerequisite (not Azure RBAC)
+## Manual step — Logic App connector authorization
 
-`deploy-infra.ps1` validates mailbox assumptions but cannot grant mailbox permissions in Exchange Online.
-You must grant the Logic App connector identity:
+The Office 365 Outlook connector requires a **one-time OAuth sign-in** that
+cannot be scripted. After running `deploy-exchange.ps1` and waiting up to
+**2 hours** for Exchange permission replication:
 
-- `FullAccess` on the target shared mailbox
-- `SendAs` on the missing-info sender mailbox
-- `SendAs` on the rejection sender mailbox
+1. Open each Logic App in the **Azure Portal**
+2. Go to **Logic App Designer**
+3. Click the Office 365 Outlook connector → **Change connection**
+4. Sign in with the service account (the `logic_app_connector_identity_upn`
+   from your config, e.g. `svc-cqc-logicapp@yourdomain.com`)
+5. Set the **Original Mailbox Address** to the appropriate shared mailbox
+6. **Save** the Logic App
+
+Repeat for each Logic App:
+
+| Logic App | Connector Type | Mailbox |
+|---|---|---|
+| Prefilter | Trigger — When a new email arrives in shared mailbox | Inbound (`target_shared_mailbox`) |
+| Missing Info | Action — Send email from shared mailbox | Sender (`missing_info_sender_mailbox`) |
+| Rejection | Action — Send email from shared mailbox | Sender (`rejection_sender_mailbox`) |
+| Reply Monitor | Trigger — When a new email arrives in shared mailbox | Inbound (`target_shared_mailbox`) |
+
+After this one-time step the pipeline runs fully programmatically.
 
 ## Fabric Notebook Structure
 
