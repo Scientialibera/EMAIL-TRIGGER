@@ -182,6 +182,27 @@ Interactive : Disable interactive sign-in if org policy allows
 > that account. It does not support system-assigned managed identities. The
 > service account approach is the standard pattern for this connector.
 
+#### How the connector authentication works
+
+The sign-in is a **one-time setup step**, not a runtime operation. The pipeline
+is fully programmatic after initial configuration.
+
+1. **During deployment (one-time, manual):** Open the Logic App in the Azure
+   Portal designer, add the Office 365 Outlook connector, and sign in with the
+   service account (`svc-cqc-logicapp@yourdomain.com`). This creates an **API
+   Connection** resource in Azure that stores an OAuth refresh token.
+2. **At runtime (fully automatic):** The Logic App uses the stored API
+   Connection to authenticate every trigger poll and email send. No human
+   interaction. Completely programmatic.
+3. **Re-authentication required only if:** the service account password changes,
+   the account is disabled, or the OAuth refresh token is revoked by policy. In
+   that case, someone re-authorizes the connector once in the portal.
+
+The alternative is using Microsoft Graph API directly with application
+permissions (no user sign-in at all), but that requires an Entra ID app
+registration, Graph API permission grants, and custom HTTP actions instead of
+the built-in Logic App connector.
+
 ### 4.5 Grant Mailbox Permissions
 
 The service account needs **FullAccess** on the inbound mailbox (to read/monitor
