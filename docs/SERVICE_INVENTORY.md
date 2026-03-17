@@ -162,18 +162,25 @@ The Logic App Office 365 Outlook connector requires a user principal (UPN) to
 authenticate. Create a dedicated service account rather than using a personal
 admin account.
 
-```powershell
-# In Azure AD / Entra ID (via Microsoft Graph PowerShell or the portal)
-# Create a user with no M365 license — it only needs Exchange permissions
-#
-# Example UPN: svc-cqc-logicapp@yourdomain.com
-# Assign a strong password and disable interactive sign-in if possible
+Create a dedicated service account with a **licensed Exchange Online mailbox**.
+This account is used to authenticate the Office 365 Outlook connector and access
+the shared mailboxes through delegated permissions.
+
+```
+Example UPN : svc-cqc-logicapp@yourdomain.com
+License     : Exchange Online (Plan 1 or Plan 2)
+Password    : Strong, rotated per org policy
+Interactive : Disable interactive sign-in if org policy allows
 ```
 
-> **Why not Managed Identity?** The Office 365 Outlook connector in Logic Apps
-> uses delegated (OAuth) permissions and requires a user login. It does not
-> support system-assigned managed identities. The service account approach is
-> the standard pattern recommended by Microsoft for this connector.
+> **Why a licensed mailbox?** Microsoft requires the connector identity to have
+> a licensed Exchange Online mailbox — the shared mailboxes themselves do not
+> need a license, but the account accessing them does.
+>
+> **Why not Managed Identity?** The Office 365 Outlook connector requires
+> user sign-in with a work or school account and creates a connection tied to
+> that account. It does not support system-assigned managed identities. The
+> service account approach is the standard pattern for this connector.
 
 ### 4.5 Grant Mailbox Permissions
 
@@ -215,8 +222,8 @@ Add-RecipientPermission `
   -Confirm:$false
 ```
 
-> **Note:** After granting permissions, wait **up to 60 minutes** for
-> propagation before testing Logic App connectors.
+> **Note:** Delegated shared-mailbox permissions can take **up to 2 hours**
+> to replicate. Wait before testing Logic App connectors.
 
 ### 4.6 Verify Permissions
 
@@ -283,7 +290,7 @@ Disconnect-ExchangeOnline -Confirm:$false
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Logic App trigger not firing | Permissions not yet propagated | Wait 60 min after `Add-MailboxPermission`; verify with `Get-MailboxPermission` |
+| Logic App trigger not firing | Permissions not yet propagated | Wait up to 2 hours after `Add-MailboxPermission`; verify with `Get-MailboxPermission` |
 | "Default folder Inbox not found" | Mailbox address is invalid or not a shared mailbox | Verify with `Get-Mailbox -Identity cqc-email-dev@yourdomain.com` |
 | "Send As" emails bounce | `Add-RecipientPermission` not applied | Re-run the command; check with `Get-RecipientPermission` |
 | Connector asks to re-authenticate | Service account password expired | Reset password; update connector connection |
