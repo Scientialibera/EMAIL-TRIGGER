@@ -1,0 +1,70 @@
+flowchart LR
+
+  subgraph mailbox [Shared Mailbox]
+    sharedMailbox["Shared Mailbox\nMicrosoft 365\nsupplier COAs + replies"]
+  end
+
+  subgraph prefilter [Logic App Prefilter]
+    logicAppPrefilter["Logic App\nPrefilter\nla-cqc-email-dev\nheader rules +\nserialization"]
+  end
+
+  subgraph processQueueBox [Service Bus Process Queue]
+    processQueue["Service Bus\nProcess Queue\nsbns-cqc-email-dev\nq-cqc-email-process\nstandard queue"]
+  end
+
+  subgraph funcApp [func-cqc-email-dev Azure Function App]
+    processFn["ProcessEmailMessage\nqueue trigger\nthread context builder\nmissing field evaluation"]
+    replyFn["ApplyEmailReplyUpdate\nHTTP POST trigger\ncorrelated field updates"]
+  end
+
+  subgraph docIntelBox [Document Intelligence]
+    docIntel["Document\nIntelligence\nPDF / DOCX / email\ntables"]
+  end
+
+  subgraph aoaiBox [Azure OpenAI]
+    aoaiValidity["Azure OpenAI - Validity\n1st LLM call\napproved / reason"]
+    aoaiExtract["Azure OpenAI - Extraction\nschema arrays of\nvalue confidence"]
+  end
+
+  subgraph writeQueueBox [Fabric Write Queue]
+    writeQueue["Fabric Write\nQueue\nq-cqc-fabric-write\nsession_id = thread_id"]
+  end
+
+  subgraph notifPaths [Logic App Notification Paths]
+    rejectionNotice["Logic App\nRejection Email\nreject notice\nheader reject or validity fail"]
+    missingInfo["Logic App Missing\nInfo Email\nrequest-for-info\nCQC-REQUEST-INFO header"]
+    replyMonitor["Logic App Reply\nMonitor\nmonitors replies in\nshared mailbox"]
+  end
+
+  subgraph writerFnBox [ProcessFabricWriteCommand]
+    writeFn["ProcessFabricWriteCommand\nsingle consumer\nmaxConcurrentSessions=1\nmaxConcurrentCalls=1"]
+  end
+
+  subgraph fabricBox [Microsoft Fabric]
+    fabricNotebook["Fabric Notebook\ncqc_silver_write\nprocess_email_cdc\napply_reply_update_cdc"]
+    fabricSilver["Lakehouse Silver\ndbo.cqc_email_silver\nappend-only CDC +\nlatest_update"]
+  end
+
+  sharedMailbox -->|"new email arrives"| logicAppPrefilter
+  logicAppPrefilter -->|"processable"| processQueue
+  logicAppPrefilter -->|"rejected by\nheader rules"| rejectionNotice
+
+  processQueue --> processFn
+  processFn -->|"OCR + images"| docIntel
+  processFn -->|"text + images"| aoaiValidity
+
+  aoaiValidity -->|"if approved"| aoaiExtract
+  aoaiValidity -->|"if not approved\nsupplier missing"| rejectionNotice
+
+  aoaiExtract -->|"enqueue\nprocess_email_cdc"| writeQueue
+  aoaiExtract -.->|"if fields below\n0.97 confidence"| missingInfo
+
+  missingInfo -->|"request-for-info\nreply with context"| sharedMailbox
+
+  sharedMailbox -->|"reply email arrives"| replyMonitor
+  replyMonitor -->|"HTTP POST with\ncorrelated fields"| replyFn
+  replyFn -->|"enqueue\napply_reply_update_cdc"| writeQueue
+
+  writeQueue -->|"session-ordered trigger"| writeFn
+  writeFn -->|"run notebook job\nvia Fabric API"| fabricNotebook
+  fabricNotebook -->|"CDC write"| fabricSilver

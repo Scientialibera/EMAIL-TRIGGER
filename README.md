@@ -11,6 +11,7 @@ Enterprise-grade Azure email processing service that:
 ## Architecture
 
 [![CQC Email Processor Architecture](docs/architecture.png)](docs/architecture.png)
+Mermaid source for draw.io MCP workflows: `docs/email-trigger-architecture.mmd`.
 
 ## Step-by-step Flow
 
