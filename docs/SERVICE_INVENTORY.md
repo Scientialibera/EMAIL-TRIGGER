@@ -88,13 +88,206 @@ Every assignment uses the **Function App's Managed Identity** as principal unles
 
 ---
 
-## 4. Exchange Online Permissions (non-Azure RBAC)
+## 4. Microsoft 365 / Exchange Online — Setup Guide
 
-| # | Identity | Mailbox | Permission | How to Set |
+This section covers the full end-to-end setup of the mailboxes and permissions
+required by the EMAIL-TRIGGER solution.
+
+### 4.1 Prerequisites
+
+| Requirement | Details |
+|---|---|
+| **Admin role** | Exchange Administrator (or Global Admin) in Microsoft 365 |
+| **PowerShell module** | `ExchangeOnlineManagement` v3+ |
+| **License** | Shared mailboxes do not require a license unless the mailbox exceeds 50 GB |
+
+Install the module if not already present:
+
+```powershell
+Install-Module ExchangeOnlineManagement -Scope CurrentUser -Force
+```
+
+### 4.2 Connect to Exchange Online
+
+```powershell
+Import-Module ExchangeOnlineManagement
+Connect-ExchangeOnline -UserPrincipalName admin@yourdomain.com
+```
+
+### 4.3 Create the Shared Mailboxes
+
+The solution requires two shared mailboxes (or one if you combine sender duties).
+
+**Dev environment:**
+
+```powershell
+# Inbound mailbox — receives supplier COA emails and replies
+New-Mailbox -Shared `
+  -Name "CQC Email Dev" `
+  -DisplayName "CQC Email Dev" `
+  -PrimarySmtpAddress cqc-email-dev@yourdomain.com
+
+# Sender mailbox — used by Logic Apps for outbound rejection + missing-info emails
+New-Mailbox -Shared `
+  -Name "CQC NoReply Dev" `
+  -DisplayName "CQC NoReply Dev" `
+  -PrimarySmtpAddress cqc-noreply-dev@yourdomain.com
+```
+
+**Prod environment:**
+
+```powershell
+New-Mailbox -Shared `
+  -Name "CQC Email" `
+  -DisplayName "CQC Email" `
+  -PrimarySmtpAddress cqc-email@yourdomain.com
+
+New-Mailbox -Shared `
+  -Name "CQC NoReply" `
+  -DisplayName "CQC NoReply" `
+  -PrimarySmtpAddress cqc-noreply@yourdomain.com
+```
+
+**Optional — keep a copy of sent messages in the sender mailbox:**
+
+```powershell
+Set-Mailbox -Identity cqc-noreply-dev@yourdomain.com `
+  -MessageCopyForSentAsEnabled $true `
+  -MessageCopyForSendOnBehalfEnabled $true
+```
+
+### 4.4 Create a Service Account for Logic App Connectors
+
+The Logic App Office 365 Outlook connector requires a user principal (UPN) to
+authenticate. Create a dedicated service account rather than using a personal
+admin account.
+
+```powershell
+# In Azure AD / Entra ID (via Microsoft Graph PowerShell or the portal)
+# Create a user with no M365 license — it only needs Exchange permissions
+#
+# Example UPN: svc-cqc-logicapp@yourdomain.com
+# Assign a strong password and disable interactive sign-in if possible
+```
+
+> **Why not Managed Identity?** The Office 365 Outlook connector in Logic Apps
+> uses delegated (OAuth) permissions and requires a user login. It does not
+> support system-assigned managed identities. The service account approach is
+> the standard pattern recommended by Microsoft for this connector.
+
+### 4.5 Grant Mailbox Permissions
+
+The service account needs **FullAccess** on the inbound mailbox (to read/monitor
+emails) and **SendAs** on the sender mailbox (to send rejection and missing-info
+emails).
+
+**Dev environment:**
+
+```powershell
+# FullAccess on the inbound shared mailbox (read, monitor, manage emails)
+Add-MailboxPermission `
+  -Identity cqc-email-dev@yourdomain.com `
+  -User svc-cqc-logicapp@yourdomain.com `
+  -AccessRights FullAccess `
+  -AutoMapping $false
+
+# SendAs on the sender mailbox (send rejection + missing-info emails)
+Add-RecipientPermission `
+  -Identity cqc-noreply-dev@yourdomain.com `
+  -Trustee svc-cqc-logicapp@yourdomain.com `
+  -AccessRights SendAs `
+  -Confirm:$false
+```
+
+**Prod environment:**
+
+```powershell
+Add-MailboxPermission `
+  -Identity cqc-email@yourdomain.com `
+  -User svc-cqc-logicapp@yourdomain.com `
+  -AccessRights FullAccess `
+  -AutoMapping $false
+
+Add-RecipientPermission `
+  -Identity cqc-noreply@yourdomain.com `
+  -Trustee svc-cqc-logicapp@yourdomain.com `
+  -AccessRights SendAs `
+  -Confirm:$false
+```
+
+> **Note:** After granting permissions, wait **up to 60 minutes** for
+> propagation before testing Logic App connectors.
+
+### 4.6 Verify Permissions
+
+```powershell
+# Check FullAccess
+Get-MailboxPermission -Identity cqc-email-dev@yourdomain.com |
+  Where-Object { $_.User -like "*svc-cqc*" } |
+  Format-Table User, AccessRights
+
+# Check SendAs
+Get-RecipientPermission -Identity cqc-noreply-dev@yourdomain.com |
+  Where-Object { $_.Trustee -like "*svc-cqc*" } |
+  Format-Table Trustee, AccessRights
+```
+
+Expected output:
+
+```
+User                                AccessRights
+----                                ------------
+svc-cqc-logicapp@yourdomain.com     {FullAccess}
+
+Trustee                             AccessRights
+-------                             ------------
+svc-cqc-logicapp@yourdomain.com     {SendAs}
+```
+
+### 4.7 Configure Logic App Connectors
+
+Each Logic App that interacts with Exchange Online needs an **Office 365 Outlook
+connector** authenticated with the service account.
+
+| Logic App | Connector Action | Mailbox | Details |
+|---|---|---|---|
+| **Prefilter** | `When a new email arrives in a shared mailbox (V2)` | `cqc-email-dev@yourdomain.com` | Trigger — polls for new inbound COA emails |
+| **Missing Info** | `Send an email from a shared mailbox (V2)` | `cqc-noreply-dev@yourdomain.com` | Action — sends request-for-information emails |
+| **Rejection** | `Send an email from a shared mailbox (V2)` | `cqc-noreply-dev@yourdomain.com` | Action — sends rejection notices |
+| **Reply Monitor** | `When a new email arrives in a shared mailbox (V2)` | `cqc-email-dev@yourdomain.com` | Trigger — polls for reply emails (filtered by header) |
+
+**Steps to wire each connector in the Azure Portal:**
+
+1. Open the Logic App in the portal
+2. Go to **Logic App Designer**
+3. For the trigger/action using Office 365 Outlook, click **Change connection**
+4. Sign in with `svc-cqc-logicapp@yourdomain.com`
+5. In the trigger/action parameters, set **Original Mailbox Address** to the
+   shared mailbox address (e.g., `cqc-email-dev@yourdomain.com`)
+6. Save the Logic App
+
+### 4.8 Permission Summary Matrix
+
+| # | Principal | Mailbox | Permission | Command |
 |---|---|---|---|---|
-| E1 | Logic App connector UPN | Shared Mailbox (Inbound) | `FullAccess` | `Add-MailboxPermission` |
-| E2 | Logic App connector UPN | Sender Mailbox (Missing Info) | `SendAs` | `Add-RecipientPermission` |
-| E3 | Logic App connector UPN | Sender Mailbox (Rejection) | `SendAs` | `Add-RecipientPermission` |
+| E1 | `svc-cqc-logicapp` | Inbound (`cqc-email-*`) | `FullAccess` | `Add-MailboxPermission` |
+| E2 | `svc-cqc-logicapp` | Sender (`cqc-noreply-*`) | `SendAs` | `Add-RecipientPermission` |
+
+### 4.9 Disconnect from Exchange Online
+
+```powershell
+Disconnect-ExchangeOnline -Confirm:$false
+```
+
+### 4.10 Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Logic App trigger not firing | Permissions not yet propagated | Wait 60 min after `Add-MailboxPermission`; verify with `Get-MailboxPermission` |
+| "Default folder Inbox not found" | Mailbox address is invalid or not a shared mailbox | Verify with `Get-Mailbox -Identity cqc-email-dev@yourdomain.com` |
+| "Send As" emails bounce | `Add-RecipientPermission` not applied | Re-run the command; check with `Get-RecipientPermission` |
+| Connector asks to re-authenticate | Service account password expired | Reset password; update connector connection |
+| Shared mailbox over 50 GB | Needs a license | Assign Exchange Online Plan 2 or enable auto-expanding archive |
 
 ---
 
