@@ -359,7 +359,23 @@ Disconnect-ExchangeOnline -Confirm:$false
 
 ---
 
-## 8. Network / Connectivity Summary
+## 8. Critical Integration Notes
+
+| # | Requirement | Detail |
+|---|---|---|
+| 1 | **Extension Bundle** | `host.json` must include `extensionBundle` with `Microsoft.Azure.Functions.ExtensionBundle` v4. Without it, Service Bus triggers silently fail to register. |
+| 2 | **Doc Intelligence Custom Subdomain** | Token auth (Managed Identity) requires a custom subdomain endpoint (`https://<name>.cognitiveservices.azure.com/`). Regional endpoints return `BadRequest`. |
+| 3 | **Doc Intelligence SDK** | Uses `azure-ai-documentintelligence` (new SDK). Import: `DocumentIntelligenceClient`, `AnalyzeDocumentRequest(bytes_source=...)`. |
+| 4 | **Doc Intelligence Kind** | Can be deployed as `AIServices` (multi-service) or standalone `FormRecognizer`. Either works; `AIServices` is recommended as it shares the endpoint for future services. |
+| 5 | **Azure OpenAI** | Deploy as standalone `OpenAI` kind for easier management. Must have custom subdomain for token auth. |
+| 6 | **AOAI Auth** | Use `get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")` with the `openai` Python SDK, or raw `Bearer` token via REST. |
+| 7 | **PyMuPDF** | PDF pages rendered to PNG via `fitz` for multimodal LLM input. Adds `PyMuPDF>=1.24.0` as a dependency. |
+| 8 | **ContentSettings** | Blob uploads should use `ContentSettings(content_type="application/json")` from `azure.storage.blob`. |
+| 9 | **Session Queues** | Fabric-write queue is session-enabled (`session_id = thread_id`). `host.json` must configure `sessionHandlerOptions`. |
+
+---
+
+## 9. Network / Connectivity Summary
 
 ```
 Shared Mailbox ──► Logic App Prefilter ──► Service Bus (process queue)
@@ -385,7 +401,7 @@ All connections use **Managed Identity + `DefaultAzureCredential`** except:
 
 ---
 
-## 9. Total Resource Count
+## 10. Total Resource Count
 
 | Category | Count |
 |---|---|

@@ -3,9 +3,13 @@
 This folder provides an idempotent, split deployment flow with a single config file:
 
 1. `deploy/deploy-infra.ps1`  
-   - deploys Azure infra using Azure CLI (no Bicep)
+   - deploys ALL Azure infra using Azure CLI (no Bicep)
+   - creates/reuses Azure OpenAI (standalone `OpenAI` kind with custom subdomain)
+   - creates/reuses Document Intelligence (`AIServices` kind with custom subdomain)
+   - deploys OpenAI model deployment (create-if-missing)
    - creates Flex Consumption Function App
    - enforces RBAC assignments idempotently
+   - validates custom subdomains (token auth fails without them)
    - bootstraps Fabric artifacts (folders, notebooks, lakehouse/table)
    - applies Function App settings from config (including MI-based Service Bus trigger connection)
 
@@ -26,8 +30,9 @@ This folder provides an idempotent, split deployment flow with a single config f
 Update `deploy/deploy.config.toml`:
 
 - Azure subscription/resource group/location/prefix
-- Optional explicit resource names for storage/service bus/function app
-- Existing AOAI and DocIntel resource IDs + endpoints
+- Optional explicit resource names — if given, the script checks if it exists and reuses it; if it doesn't exist, creates with that name; if left empty, derives a name from the prefix
+- `[openai]` — model deployment name, version, SKU, toggle `deploy_openai_resources`
+- `[docintel]` — SKU, toggle `deploy_docintel_resources`
 - Fabric workspace ID and folder/lakehouse/notebook/table preferences
 - Logic App callback URLs
 - Mailbox addresses and connector service account UPN (under `[mailbox]`)

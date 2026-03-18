@@ -28,6 +28,36 @@
 3. Replay message from DLQ to main queue using approved ops tool.
 4. Verify record status in Fabric Silver.
 
+## Infrastructure Requirements
+
+### Extension Bundle (host.json)
+The `extensionBundle` section in `host.json` is **mandatory**. Without it, Service Bus trigger bindings fail to register and the Function App silently ignores queue messages.
+
+### Document Intelligence — Custom Subdomain
+Token-based authentication (Managed Identity) requires a **custom subdomain** on the Cognitive Services account. The regional endpoint (e.g. `https://eastus2.api.cognitive.microsoft.com/`) does **not** support token auth. The deploy script enforces this automatically; ensure the `DOCINTEL_ENDPOINT` uses the form `https://<account-name>.cognitiveservices.azure.com/`.
+
+### Document Intelligence — SDK
+Uses `azure-ai-documentintelligence` (not the legacy `azure-ai-formrecognizer`). The new SDK uses `DocumentIntelligenceClient` and `AnalyzeDocumentRequest(bytes_source=...)`.
+
+### Azure OpenAI — Authentication
+Use `get_bearer_token_provider` from `azure.identity` with scope `https://cognitiveservices.azure.com/.default` for the `openai` Python SDK. Raw token via `get_access_token()` also works for REST calls.
+
+### PyMuPDF — Multimodal Page Rendering
+PDF pages are rendered to PNG images using PyMuPDF (`fitz`) for multimodal LLM input. Both the OCR text and the page images are sent to the LLM for extraction accuracy.
+
+### Service Bus Session Queues
+The fabric-write queue uses sessions (`session_id = thread_id`) to ensure ordered processing per email thread. The Function App must have `maxConcurrentSessions` and `maxConcurrentCalls` configured in `host.json`.
+
+## Configuration Reference
+
+| Setting | Default | Behavior |
+|---|---|---|
+| `CONFIDENCE_THRESHOLD_REQUIRED` | `0.97` | Minimum confidence score (0–1) an extracted field must meet to be accepted. Fields below this threshold are flagged as low-confidence and may trigger a request-for-information email to the sender. |
+| `ACTIVE_EXTRACTION_SCHEMA` | `coa_v1` | Selects which JSON schema file under `src/schemas/extraction/` defines the expected COA fields. Allows versioned schema rollouts without code changes. |
+| `ACTIVE_MODEL_PROFILE` | `default` | Selects the YAML model profile under `src/model_profiles/` that maps logical roles (validity, extraction) to specific AOAI deployment names, temperature, and max_tokens. |
+| `FABRIC_NOTEBOOK_POLL_SECONDS` | `10` | Interval in seconds between status polls when waiting for a Fabric notebook job to complete. |
+| `FABRIC_NOTEBOOK_WAIT_TIMEOUT_SECONDS` | `1800` | Maximum wait time (30 min) before a Fabric notebook job is considered timed out. |
+
 ## Change Management
 
 - Field changes: update `src/schemas/extraction/*.json`.

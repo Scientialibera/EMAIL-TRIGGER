@@ -1,45 +1,53 @@
 [azure]
-subscription_id = ""
+subscription_id = ""                      # Leave empty to use current az login context
 location = "eastus2"
-resource_group_name = ""
+resource_group_name = ""                  # Empty = derived as rg-<prefix>
 
 [naming]
+# For each name: if given, check if exists → reuse; if not exists → create with that name; if empty → derive from prefix
 prefix = "emailtrigger"
-function_app_name = ""
-storage_account_name = ""
-servicebus_namespace_name = ""
+function_app_name = ""                    # Empty = func-<prefix>
+storage_account_name = ""                 # Empty = st<prefix> (alphanumeric, max 24 chars)
+servicebus_namespace_name = ""            # Empty = sbns-<prefix>
+openai_account_name = ""                  # Empty = aoai-<prefix>
+docintel_account_name = ""                # Empty = doci-<prefix>
 
 [queues]
-process_queue_name = "q-cqc-email-process"
-fabric_write_queue_name = "q-cqc-fabric-write"
+process_queue_name = "q-cqc-email-process"        # Inbound email processing (standard, no sessions)
+fabric_write_queue_name = "q-cqc-fabric-write"    # Fabric write commands (session-enabled, session_id = thread_id)
 
 [storage]
-prompts_container_name = "prompts"
+prompts_container_name = "prompts"                # Blob container holding versioned LLM prompts
 
 [prompts]
-validity_blob_name = "validity/validity_v1.txt"
-extraction_blob_name = "extraction/extraction_v1.txt"
+validity_blob_name = "validity/validity_v1.txt"   # Prompt for the approval/rejection gate
+extraction_blob_name = "extraction/extraction_v1.txt"  # Prompt for structured field extraction
 
-[dependencies]
-aoai_resource_id = ""
-docintel_resource_id = ""
-aoai_endpoint = ""
-docintel_endpoint = ""
-aoai_invoke_role_definition_id = ""
-docintel_invoke_role_definition_id = ""
+[openai]
+deploy_openai_resources = true            # true = create/reuse; false = account must pre-exist (name required in [naming])
+deployment_name = "gpt-4o"                # AOAI model deployment name (single deployment for both validity and extraction calls)
+model_name = "gpt-4o"
+model_version = "2024-11-20"
+deployment_sku_name = "GlobalStandard"
+capacity = 50                             # Tokens-per-minute in thousands
+api_version = "2024-12-01-preview"        # Azure OpenAI REST API version
+
+[docintel]
+deploy_docintel_resources = true          # true = create/reuse; false = account must pre-exist (name required in [naming])
+sku_name = "S0"                           # Deployed as AIServices kind; custom subdomain enforced for token auth
 
 [logic_app]
-missing_info_logicapp_url = ""
-rejection_notice_logicapp_url = ""
+missing_info_logicapp_url = ""            # HTTP trigger URL of the Logic App that sends request-for-information emails
+rejection_notice_logicapp_url = ""        # HTTP trigger URL of the Logic App that sends rejection notices
 
 [mailbox]
-target_shared_mailbox = ""
-missing_info_sender_mailbox = ""
-rejection_sender_mailbox = ""
-logic_app_connector_identity_upn = ""
+target_shared_mailbox = ""                # Shared mailbox monitored for inbound supplier emails (e.g. cqc-email-dev@contoso.com)
+missing_info_sender_mailbox = ""          # From address for request-for-information emails
+rejection_sender_mailbox = ""             # From address for rejection notices (can share with missing_info)
+logic_app_connector_identity_upn = ""     # Service account UPN used for the Logic App Office 365 connector sign-in
 
 [fabric]
-workspace_id = ""
+workspace_id = ""                         # Fabric workspace GUID (must be pre-created)
 workspace_role_for_function_mi = "Contributor"
 root_folder_name = "notebooks"
 main_folder_name = "main"
@@ -49,8 +57,8 @@ lakehouse_id = ""
 silver_table_name = "dbo.cqc_email_silver"
 writer_notebook_display_name = "cqc_silver_writer_main"
 bootstrap_notebook_display_name = "cqc_silver_bootstrap_main"
-push_notebooks = true
-run_bootstrap_table_notebook = true
+push_notebooks = true                     # Upload notebook source files to Fabric on deploy
+run_bootstrap_table_notebook = true       # Run the bootstrap notebook to create the Silver table if it doesn't exist
 
 [paths]
 writer_main_notebook_source = "deploy/assets/fabric/notebooks/main/cqc_silver_writer_main.py"
@@ -61,9 +69,8 @@ validity_prompt_source = "src/prompts/validity/validity_v1.txt"
 extraction_prompt_source = "src/prompts/extraction/extraction_v1.txt"
 
 [app_settings]
-active_model_profile = "default"
-active_extraction_schema = "coa_v1"
-confidence_threshold_required = 0.97
-aoai_api_version = "2024-06-01"
-fabric_notebook_poll_seconds = 10
-fabric_notebook_wait_timeout_seconds = 1800
+active_model_profile = "default"          # Selects the YAML profile in src/model_profiles/ mapping roles to AOAI deployments
+active_extraction_schema = "coa_v1"       # Selects which JSON schema in src/schemas/extraction/ defines expected COA fields
+confidence_threshold_required = 0.97      # Minimum confidence (0–1) for an extracted field to be accepted; below this triggers a request-for-information email
+fabric_notebook_poll_seconds = 10         # Seconds between polls when waiting for a Fabric notebook job to finish
+fabric_notebook_wait_timeout_seconds = 1800  # Max wait (30 min) before a Fabric notebook job is considered timed out

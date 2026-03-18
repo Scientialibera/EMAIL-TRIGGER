@@ -11,12 +11,11 @@
     "ACTIVE_MODEL_PROFILE": "default",
     "ACTIVE_EXTRACTION_SCHEMA": "coa_v1",
     "CONFIDENCE_THRESHOLD_REQUIRED": "0.97",
-    "AOAI_ENDPOINT": "https://your-aoai.openai.azure.com",
-    "AOAI_API_VERSION": "2024-06-01",
-    "AOAI_DEPLOYMENT_VALIDITY": "gpt-4.1-mini",
-    "AOAI_DEPLOYMENT_EXTRACTION": "gpt-4.1",
-    "DOCINTEL_ENDPOINT": "https://your-docintel.cognitiveservices.azure.com",
-    "STORAGE_ACCOUNT_NAME": "styouremailtriggerstorage",
+    "AOAI_ENDPOINT": "https://aoai-emailtrigger.openai.azure.com/",
+    "AOAI_DEPLOYMENT": "gpt-4o",
+    "AOAI_API_VERSION": "2024-12-01-preview",
+    "DOCINTEL_ENDPOINT": "https://doci-emailtrigger.cognitiveservices.azure.com/",
+    "STORAGE_ACCOUNT_NAME": "stemailtrigger",
     "PROMPTS_CONTAINER_NAME": "prompts",
     "VALIDITY_PROMPT_BLOB_NAME": "validity/validity_v1.txt",
     "EXTRACTION_PROMPT_BLOB_NAME": "extraction/extraction_v1.txt",
@@ -28,6 +27,9 @@
     "FABRIC_SILVER_TABLE": "dbo.cqc_email_silver",
     "MISSING_INFO_LOGICAPP_URL": "https://prod-00.region.logic.azure.com/workflows/.../triggers/manual/paths/invoke",
     "REJECTION_NOTICE_LOGICAPP_URL": "https://prod-00.region.logic.azure.com/workflows/.../triggers/manual/paths/invoke",
-    "ENABLE_KEYVAULT": "false"
+    "TARGET_SHARED_MAILBOX": "cqc-email-dev@contoso.com",
+    "MISSING_INFO_SENDER_MAILBOX": "cqc-noreply-dev@contoso.com",
+    "REJECTION_SENDER_MAILBOX": "cqc-noreply-dev@contoso.com",
+    "LOGIC_APP_CONNECTOR_IDENTITY_UPN": "svc-cqc-logicapp@contoso.com"
   }
 }
