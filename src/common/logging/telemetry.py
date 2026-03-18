@@ -2,7 +2,20 @@ from __future__ import annotations
 
 import json
 import logging
+import time
+from contextlib import contextmanager
 from typing import Any
+
+
+@contextmanager
+def timed_step():
+    """Context manager that measures wall-clock elapsed milliseconds."""
+    start = time.perf_counter()
+    result = {"elapsed_ms": 0}
+    try:
+        yield result
+    finally:
+        result["elapsed_ms"] = round((time.perf_counter() - start) * 1000)
 
 
 def get_logger(name: str = "cqc_email_processor") -> logging.Logger:

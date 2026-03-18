@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import requests
 
 from src.common.auth.credentials import get_access_token
 from src.common.config.settings import AppSettings
+from src.common.logging.telemetry import timed_step
 from src.common.utils.retry import retry
+
+_logger = logging.getLogger(__name__)
 
 
 class AzureOpenAIAdapter:
@@ -50,14 +54,27 @@ class AzureOpenAIAdapter:
                 body["tool_choice"] = tool_choice
         else:
             body["response_format"] = {"type": "json_object"}
-        def _request() -> dict[str, Any]:
-            response = requests.post(
-                url, json=body, headers={"Authorization": f"Bearer {token}"}, timeout=60
-            )
-            response.raise_for_status()
-            return response.json()
 
-        payload = retry(_request, retries=3)
+        with timed_step() as t:
+            def _request() -> dict[str, Any]:
+                response = requests.post(
+                    url, json=body, headers={"Authorization": f"Bearer {token}"}, timeout=60
+                )
+                response.raise_for_status()
+                return response.json()
+
+            payload = retry(_request, retries=3)
+
+        usage = payload.get("usage", {})
+        _logger.info(json.dumps({
+            "event": "openai_api_call",
+            "deployment": deployment,
+            "elapsed_ms": t["elapsed_ms"],
+            "prompt_tokens": usage.get("prompt_tokens"),
+            "completion_tokens": usage.get("completion_tokens"),
+            "total_tokens": usage.get("total_tokens"),
+        }, default=str))
+
         message = payload["choices"][0]["message"]
         if message.get("tool_calls"):
             return json.loads(message["tool_calls"][0]["function"]["arguments"])

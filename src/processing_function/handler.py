@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from src.common.config.settings import get_settings
-from src.common.logging.telemetry import log_event
+from src.common.logging.telemetry import log_event, timed_step
 from src.common.utils.validation import compute_missing_fields
 from src.processing_function.adapters.doc_intelligence_client import DocumentIntelligenceAdapter
 from src.processing_function.adapters.fabric_write_queue_client import FabricWriteQueueAdapter
@@ -22,6 +23,7 @@ from src.processing_function.pipeline.validity_check import evaluate_validity
 
 
 def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
+    total_start = time.perf_counter()
     settings = get_settings()
     queue_message = parse_service_bus_message(message_body)
     correlation_id = queue_message.correlation_id
@@ -43,13 +45,31 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
         rejection_invoke_url=settings.rejection_notice_logicapp_url,
     )
 
-    extracted_attachments, attachment_names, _attachment_bytes = convert_attachments_to_text(
-        queue_message.attachment_refs, doc_client
+    step_timings: dict[str, int] = {}
+
+    with timed_step() as t_convert:
+        extracted_attachments, attachment_names, _attachment_bytes = convert_attachments_to_text(
+            queue_message.attachment_refs, doc_client
+        )
+    step_timings["attachment_conversion"] = t_convert["elapsed_ms"]
+    log_event(
+        logger, "attachment_conversion", correlation_id,
+        elapsed_ms=t_convert["elapsed_ms"],
+        attachment_count=len(attachment_names),
     )
+
     llm_context = build_llm_context(queue_message, extracted_attachments)
     image_data_urls = collect_image_data_urls(queue_message, extracted_attachments)
 
-    is_valid, reason = evaluate_validity(llm_context, image_data_urls, ai_client)
+    with timed_step() as t_validity:
+        is_valid, reason = evaluate_validity(llm_context, image_data_urls, ai_client)
+    step_timings["validity_check"] = t_validity["elapsed_ms"]
+    log_event(
+        logger, "validity_check", correlation_id,
+        elapsed_ms=t_validity["elapsed_ms"],
+        approved=is_valid,
+    )
+
     if not is_valid:
         send_rejection_notice(
             queue_message=queue_message,
@@ -62,17 +82,23 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
         log_event(logger, "validity_rejected", correlation_id, reason=reason)
         return
 
-    record = extract_record(
-        email_id=queue_message.internet_message_id,
-        thread_id=queue_message.thread_id,
-        receive_timestamp=queue_message.received_timestamp,
-        attachment_names=attachment_names,
-        text=llm_context,
-        image_data_urls=image_data_urls,
-        schema=settings.extraction_schema,
-        model_name=settings.profile.extraction_model,
-        correlation_id=correlation_id,
-        client=ai_client,
+    with timed_step() as t_extract:
+        record = extract_record(
+            email_id=queue_message.internet_message_id,
+            thread_id=queue_message.thread_id,
+            receive_timestamp=queue_message.received_timestamp,
+            attachment_names=attachment_names,
+            text=llm_context,
+            image_data_urls=image_data_urls,
+            schema=settings.extraction_schema,
+            model_name=settings.profile.extraction_model,
+            correlation_id=correlation_id,
+            client=ai_client,
+        )
+    step_timings["field_extraction"] = t_extract["elapsed_ms"]
+    log_event(
+        logger, "field_extraction", correlation_id,
+        elapsed_ms=t_extract["elapsed_ms"],
     )
 
     required_fields = settings.extraction_schema.get("required_fields", [])
@@ -81,12 +107,18 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
     )
     record.status = "missing_info" if record.missing_fields else "processed"
 
-    persist_record(
-        record=record,
-        fabric_workspace_id=settings.fabric_workspace_id,
-        lakehouse_id=settings.fabric_lakehouse_id,
-        table_name=settings.fabric_silver_table,
-        client=fabric_client,
+    with timed_step() as t_persist:
+        persist_record(
+            record=record,
+            fabric_workspace_id=settings.fabric_workspace_id,
+            lakehouse_id=settings.fabric_lakehouse_id,
+            table_name=settings.fabric_silver_table,
+            client=fabric_client,
+        )
+    step_timings["fabric_write_enqueue"] = t_persist["elapsed_ms"]
+    log_event(
+        logger, "fabric_write_enqueue", correlation_id,
+        elapsed_ms=t_persist["elapsed_ms"],
     )
 
     if record.missing_fields:
@@ -106,4 +138,11 @@ def process_email_message(message_body: bytes, logger: logging.Logger) -> None:
             missing_fields=record.missing_fields,
         )
 
-    log_event(logger, "processing_complete", correlation_id, status=record.status)
+    total_ms = round((time.perf_counter() - total_start) * 1000)
+    log_event(
+        logger, "processing_summary", correlation_id,
+        total_ms=total_ms,
+        status=record.status,
+        attachment_count=len(attachment_names),
+        steps=step_timings,
+    )
