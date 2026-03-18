@@ -34,14 +34,16 @@ class AzureOpenAIAdapter:
         for image_data_url in image_data_urls or []:
             user_content.append({"type": "image_url", "image_url": {"url": image_data_url}})
 
-        body = {
-            "temperature": self._settings.profile.temperature,
-            "max_tokens": self._settings.profile.max_tokens,
+        body: dict[str, Any] = {
             "messages": [
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": user_content},
             ],
         }
+        if self._settings.profile.temperature is not None:
+            body["temperature"] = self._settings.profile.temperature
+        if self._settings.profile.max_completion_tokens:
+            body["max_completion_tokens"] = self._settings.profile.max_completion_tokens
         if tools:
             body["tools"] = tools
             if tool_choice:

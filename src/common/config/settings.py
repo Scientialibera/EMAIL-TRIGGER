@@ -16,8 +16,8 @@ import yaml
 class ModelProfile:
     validity_model: str
     extraction_model: str
-    temperature: float
-    max_tokens: int
+    temperature: float | None
+    max_completion_tokens: int | None
     profile_name: str
 
 
@@ -62,11 +62,12 @@ def _read_text(path: Path) -> str:
 def _load_profile(profile_name: str) -> ModelProfile:
     profile_path = _repo_root() / "src" / "model_profiles" / f"{profile_name}.yaml"
     payload = yaml.safe_load(_read_text(profile_path))
+    raw_tokens = os.getenv("AOAI_MAX_COMPLETION_TOKENS", "")
     return ModelProfile(
         validity_model=_resolve_env_placeholder(payload["validity_model"]),
         extraction_model=_resolve_env_placeholder(payload["extraction_model"]),
-        temperature=float(payload.get("temperature", 0.0)),
-        max_tokens=int(payload.get("max_tokens", 2000)),
+        temperature=float(payload["temperature"]) if "temperature" in payload else None,
+        max_completion_tokens=int(raw_tokens) if raw_tokens else None,
         profile_name=profile_name,
     )
 
@@ -137,7 +138,7 @@ def get_settings() -> AppSettings:
         confidence_threshold_required=float(os.getenv("CONFIDENCE_THRESHOLD_REQUIRED", "0.97")),
         active_extraction_schema=active_schema,
         aoai_endpoint=_require_non_empty(os.getenv("AOAI_ENDPOINT", ""), "AOAI_ENDPOINT"),
-        aoai_api_version=os.getenv("AOAI_API_VERSION", "2024-06-01"),
+        aoai_api_version=os.getenv("AOAI_API_VERSION", "2025-01-01-preview"),
         docintel_endpoint=_require_non_empty(os.getenv("DOCINTEL_ENDPOINT", ""), "DOCINTEL_ENDPOINT"),
         fabric_notebook_job_endpoint=_require_non_empty(
             os.getenv("FABRIC_NOTEBOOK_JOB_ENDPOINT", ""), "FABRIC_NOTEBOOK_JOB_ENDPOINT"

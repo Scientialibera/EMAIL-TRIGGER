@@ -19,7 +19,7 @@ Complete inventory of every service, resource, identity, table, mailbox, and con
 | 7 | **Service Bus Queue — Process** | `q-cqc-email-process` | `q-cqc-email-process` | Standard queue (no sessions) |
 | 8 | **Service Bus Queue — Fabric Write** | `q-cqc-fabric-write` | `q-cqc-fabric-write` | Session-enabled (`session_id = thread_id`) |
 | 9 | **Azure OpenAI Account** | `aoai-cqc-email-dev` | `aoai-cqc-email-prod` | Or shared AI Foundry resource |
-| 10 | **AOAI Model Deployment** | `gpt-4o-dev` | `gpt-4o-prod` | Single deployment used for both validity and extraction; different prompts + function definitions per call |
+| 10 | **AOAI Model Deployment** | `gpt-5-mini` | `gpt-5-mini` | Single deployment used for both validity and extraction; different prompts + function definitions per call |
 | 12 | **Document Intelligence** | `di-cqc-email-dev` | `di-cqc-email-prod` | `prebuilt-read` model; OCR for PDF/DOCX/images |
 | 13 | **Key Vault** | `kv-cqc-email-dev` | `kv-cqc-email-prod` | RBAC-authorized; stores any secrets if needed |
 | 14 | **Application Insights** | `appi-cqc-email-dev` | `appi-cqc-email-prod` | Telemetry, traces by `correlation_id` |

@@ -348,6 +348,7 @@ $appSettings = @(
     "AOAI_ENDPOINT=$aoaiEndpoint",
     "AOAI_DEPLOYMENT=$($config.openai.deployment_name)",
     "AOAI_API_VERSION=$($config.openai.api_version)",
+    "AOAI_MAX_COMPLETION_TOKENS=$($config.openai.max_completion_tokens)",
     "DOCINTEL_ENDPOINT=$docIntelEndpoint",
     "STORAGE_ACCOUNT_NAME=$storageAccountName",
     "PROMPTS_CONTAINER_NAME=$promptsContainer",
