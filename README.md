@@ -95,3 +95,14 @@ hours for Exchange permission replication:
 After this one-time step the pipeline runs fully programmatically.
 
 Detailed deployment notes are in `deploy/README.md`.
+
+## Fabric Deployment Lessons Learned
+
+Adopt these working patterns for this repo:
+
+- Use `pwsh ./deploy/deploy-fabric.ps1` for notebook/folder/lakehouse push from repo root
+- Keep all workspace/lakehouse/notebook targeting in `deploy/deploy.config.toml`
+- Treat `deploy/assets/fabric/notebooks/` as source of truth and avoid manual notebook editing in Fabric UI
+- Keep push order deterministic (modules first, then main notebooks) so `%run` dependencies resolve consistently
+- Rerun idempotent scripts after fixes instead of patching deployed artifacts manually
+- Validate prerequisites before deployment (`az login`, workspace access, and Fabric capacity)
