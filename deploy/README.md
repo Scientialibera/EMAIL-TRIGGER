@@ -86,3 +86,14 @@ And pushes notebook sources from:
 
 - `deploy/assets/fabric/notebooks/main`
 - `deploy/assets/fabric/notebooks/modules`
+
+## Fabric Push Guardrails
+
+Use this workflow to keep notebook deployments repeatable and drift-free:
+
+1. Run from repo root with PowerShell 7:
+   - `pwsh ./deploy/deploy-fabric.ps1`
+2. Confirm `az login` is active and `deploy/deploy.config.toml` targets the intended workspace.
+3. Treat `deploy/assets/fabric/notebooks/` as source of truth; avoid editing notebook logic directly in Fabric UI.
+4. Deploy in deterministic order (modules first, then main notebooks) so notebook dependencies resolve correctly.
+5. If deployment fails, fix source/config and rerun the script; avoid manual patching of deployed artifacts.
