@@ -28,6 +28,32 @@ function Select-Value {
     return $Configured
 }
 
+function Assert-DeploymentPrereqs {
+    if ($PSVersionTable.PSVersion.Major -lt 7) {
+        throw "PowerShell 7+ is required. Run with: pwsh ./deploy/deploy-fabric.ps1"
+    }
+    if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+        throw "Azure CLI (az) is required but was not found in PATH."
+    }
+    if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+        throw "Python is required but was not found in PATH."
+    }
+    az account show --only-show-errors | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Azure CLI is not authenticated. Run: az login"
+    }
+}
+
+function Assert-NotebookSourceFile {
+    param([string]$PathValue, [string]$Label)
+    if ([string]::IsNullOrWhiteSpace($PathValue)) {
+        throw "$Label notebook source path is empty in deploy config."
+    }
+    if (-not (Test-Path -LiteralPath $PathValue -PathType Leaf)) {
+        throw "$Label notebook source file not found: $PathValue"
+    }
+}
+
 function Get-FabricToken {
     return az account get-access-token --resource "https://api.fabric.microsoft.com" --query accessToken -o tsv
 }
@@ -229,6 +255,7 @@ function Ensure-FabricRoleAssignment {
 }
 
 $config = Get-Config -Path $ConfigPath
+Assert-DeploymentPrereqs
 $workspaceId = $config.fabric.workspace_id
 if ([string]::IsNullOrWhiteSpace($workspaceId)) {
     throw "fabric.workspace_id is required in deploy config."
@@ -266,6 +293,10 @@ if ($pushNotebooks) {
     $writerMainPath = $config.paths.writer_main_notebook_source
     $bootstrapModulePath = $config.paths.bootstrap_module_notebook_source
     $bootstrapMainPath = $config.paths.bootstrap_main_notebook_source
+    Assert-NotebookSourceFile -PathValue $writerModulePath -Label "Writer module"
+    Assert-NotebookSourceFile -PathValue $writerMainPath -Label "Writer main"
+    Assert-NotebookSourceFile -PathValue $bootstrapModulePath -Label "Bootstrap module"
+    Assert-NotebookSourceFile -PathValue $bootstrapMainPath -Label "Bootstrap main"
 
     Ensure-FabricNotebook -WorkspaceId $workspaceId -DisplayName "cqc_silver_module" -FolderId $modulesFolderId -SourceFilePath $writerModulePath | Out-Null
     Ensure-FabricNotebook -WorkspaceId $workspaceId -DisplayName "cqc_silver_bootstrap_module" -FolderId $modulesFolderId -SourceFilePath $bootstrapModulePath | Out-Null
