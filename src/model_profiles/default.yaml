@@ -1,2 +1,4 @@
 validity_model: ${AOAI_DEPLOYMENT}
 extraction_model: ${AOAI_DEPLOYMENT}
+reasoning_model: true
+reasoning_effort: medium

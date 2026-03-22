@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "cqc-email-processor"
 version = "0.1.0"
 description = "CQC Intelligent Email Processor Azure Functions service"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
   "azure-functions>=1.20.0",
   "azure-identity>=1.17.1",
@@ -36,4 +36,4 @@ include = ["src*"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"

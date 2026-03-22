@@ -44,10 +44,13 @@ class AzureOpenAIAdapter:
                 {"role": "user", "content": user_content},
             ],
         }
-        if self._settings.profile.temperature is not None:
-            body["temperature"] = self._settings.profile.temperature
-        if self._settings.profile.max_completion_tokens:
-            body["max_completion_tokens"] = self._settings.profile.max_completion_tokens
+        if self._settings.profile.reasoning_model:
+            body["reasoning_effort"] = self._settings.profile.reasoning_effort
+        else:
+            if self._settings.profile.temperature is not None:
+                body["temperature"] = self._settings.profile.temperature
+            if self._settings.profile.max_completion_tokens:
+                body["max_completion_tokens"] = self._settings.profile.max_completion_tokens
         if tools:
             body["tools"] = tools
             if tool_choice:

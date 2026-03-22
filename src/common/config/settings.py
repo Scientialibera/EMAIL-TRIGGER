@@ -18,6 +18,8 @@ class ModelProfile:
     extraction_model: str
     temperature: float | None
     max_completion_tokens: int | None
+    reasoning_model: bool
+    reasoning_effort: str
     profile_name: str
 
 
@@ -68,6 +70,8 @@ def _load_profile(profile_name: str) -> ModelProfile:
         extraction_model=_resolve_env_placeholder(payload["extraction_model"]),
         temperature=float(payload["temperature"]) if "temperature" in payload else None,
         max_completion_tokens=int(raw_tokens) if raw_tokens else None,
+        reasoning_model=bool(payload.get("reasoning_model", False)),
+        reasoning_effort=str(payload.get("reasoning_effort", "medium")),
         profile_name=profile_name,
     )
 
